@@ -30,7 +30,12 @@
 
 ## モデルサンプルデータ
 ### Currency モデル
-
+id,code,name
+UUID-C1,USD,米ドル
+UUID-C2,EUR,ユーロ
+UUID-C3,GBP,英ポンド
+UUID-C4,AUD,豪ドル
+UUID-C5,THB,タイバーツ
 
 ## ファイル構成
 ```
