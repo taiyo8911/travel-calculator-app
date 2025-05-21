@@ -66,10 +66,6 @@ struct TripRow: View {
 
             // 旅行期間
             HStack {
-                Image(systemName: "calendar")
-                    .foregroundColor(.secondary)
-                    .font(.caption)
-
                 Text(formattedDate(trip.startDate))
                     .font(.subheadline)
 
@@ -80,9 +76,6 @@ struct TripRow: View {
                 Text(formattedDate(trip.endDate))
                     .font(.subheadline)
 
-                Text("(\(trip.tripDuration)日間)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
             }
 
             // 通貨レートと支出額

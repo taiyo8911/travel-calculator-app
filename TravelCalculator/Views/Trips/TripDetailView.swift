@@ -82,9 +82,9 @@ struct TripDetailView: View {
     private var homeTab: some View {
         ScrollView {
             VStack(spacing: 20) {
-                Spacer()
                 tripPeriodSection
                 currencyHeader
+                Spacer()
                 summarySection
                 Spacer()
                 actionButtons
@@ -95,46 +95,41 @@ struct TripDetailView: View {
 
     // 旅行期間セクション
     private var tripPeriodSection: some View {
-        VStack(spacing: 10) {
+        HStack(spacing: 8) {
+            Text(formattedDate(currentTrip.startDate))
+                .font(.headline)
+
+            Text("〜")
+                .font(.headline)
+
+            Text(formattedDate(currentTrip.endDate))
+                .font(.headline)
+
             tripStatusBadge
 
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("開始日")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Text(formattedDate(currentTrip.startDate))
-                        .font(.headline)
-                }
-
-                Spacer()
-
-                Image(systemName: "arrow.right")
-                    .foregroundColor(.blue)
-
-                Spacer()
-
-                VStack(alignment: .trailing) {
-                    Text("終了日")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Text(formattedDate(currentTrip.endDate))
-                        .font(.headline)
-                }
-            }
-
-            Text("旅行期間: \(currentTrip.tripDuration)日間")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .padding(.top, 4)
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.secondarySystemBackground))
-        )
+        .padding(.horizontal)
+    }
+
+    // 通貨情報ヘッダー
+    private var currencyHeader: some View {
+        HStack(spacing: 8) {
+            Text(flagEmoji(for: "JP"))
+                .font(.title2)
+
+            Text("日本円 (JPY)")
+                .font(.headline)
+
+            Image(systemName: "arrow.right")
+                .foregroundColor(.blue)
+                .padding(.horizontal, 4)
+
+            Text(flagEmoji(for: currentTrip.currency.code))
+                .font(.title2)
+
+            Text("\(currentTrip.currency.name) (\(currentTrip.currency.code))")
+                .font(.headline)
+        }
         .padding(.horizontal)
     }
 
@@ -152,8 +147,6 @@ struct TripDetailView: View {
             } else if isPast {
                 statusBadge(text: "終了", color: .gray)
             }
-
-            Spacer()
         }
     }
 
@@ -167,28 +160,6 @@ struct TripDetailView: View {
             .background(color.opacity(0.2))
             .foregroundColor(color)
             .cornerRadius(8)
-    }
-
-    // 通貨情報ヘッダー
-    private var currencyHeader: some View {
-        HStack(spacing: 8) {
-            Text(flagEmoji(for: "JP"))
-                .font(.title2)
-
-            Text("日本円 (JPY)")
-                .font(.headline)
-
-            Image(systemName: "arrow.right.arrow.left")
-                .foregroundColor(.blue)
-                .padding(.horizontal, 4)
-
-            Text(flagEmoji(for: currentTrip.currency.code))
-                .font(.title2)
-
-            Text("\(currentTrip.currency.name) (\(currentTrip.currency.code))")
-                .font(.headline)
-        }
-        .padding(.horizontal)
     }
 
     // サマリーカード

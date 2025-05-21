@@ -43,17 +43,7 @@ struct SettingsView: View {
 
     private var appInformationSection: some View {
         Section(header: Text("アプリ情報")) {
-            versionRow
             aboutAppButton
-        }
-    }
-
-    private var versionRow: some View {
-        HStack {
-            Text("バージョン")
-            Spacer()
-            Text("1.0.0")
-                .foregroundColor(.secondary)
         }
     }
 
@@ -94,10 +84,8 @@ struct AboutView: View {
             VStack(spacing: 20) {
                 iconView
                 titleView
-                versionView
                 dividerView
                 descriptionView
-                copyrightView
                 Spacer()
             }
             .padding()
@@ -120,11 +108,6 @@ struct AboutView: View {
             .fontWeight(.bold)
     }
 
-    private var versionView: some View {
-        Text("Version 1.0.0")
-            .foregroundColor(.secondary)
-    }
-
     private var dividerView: some View {
         Divider()
             .padding(.horizontal, 50)
@@ -135,13 +118,6 @@ struct AboutView: View {
         Text("海外旅行中の両替と買い物の記録を簡単に管理するアプリです。")
             .multilineTextAlignment(.center)
             .padding(.horizontal)
-    }
-
-    private var copyrightView: some View {
-        Text("© 2025 MAC-YA")
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .padding(.top, 30)
     }
 }
 
