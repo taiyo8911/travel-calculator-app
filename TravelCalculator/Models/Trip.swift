@@ -12,16 +12,32 @@ struct Trip: Codable, Identifiable, Hashable {
     var id = UUID()
     var name: String // 旅行名（例：「タイ旅行2023」）
     var currency: Currency // 旅行先通貨
+    var startDate: Date // 旅行開始日
+    var endDate: Date // 旅行終了日
     var exchangeRecords: [ExchangeRecord] = [] // この旅行での両替記録
     var purchaseRecords: [PurchaseRecord] = [] // この旅行での買い物記録
 
     // イニシャライザ
-    init(id: UUID = UUID(), name: String, currency: Currency, exchangeRecords: [ExchangeRecord] = [], purchaseRecords: [PurchaseRecord] = []) {
+    init(id: UUID = UUID(), name: String, currency: Currency, startDate: Date = Date(), endDate: Date = Date().addingTimeInterval(60*60*24*7), exchangeRecords: [ExchangeRecord] = [], purchaseRecords: [PurchaseRecord] = []) {
         self.id = id
         self.name = name
         self.currency = currency
+        self.startDate = startDate
+        self.endDate = endDate
         self.exchangeRecords = exchangeRecords
         self.purchaseRecords = purchaseRecords
+    }
+
+    // 計算プロパティ - 旅行日数
+    var tripDuration: Int {
+        let components = Calendar.current.dateComponents([.day], from: startDate, to: endDate)
+        return components.day ?? 0 + 1 // 開始日と終了日を含める
+    }
+
+    // 計算プロパティ - 旅行が現在進行中かどうか
+    var isActive: Bool {
+        let currentDate = Date()
+        return currentDate >= startDate && currentDate <= endDate
     }
 
     // 計算プロパティ - 加重平均レート

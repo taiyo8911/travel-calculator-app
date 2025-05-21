@@ -59,6 +59,7 @@ struct TripDetailView: View {
         ScrollView {
             VStack(spacing: 20) {
                 Spacer()
+                tripPeriodSection
                 currencyHeader
                 summarySection
                 Spacer()
@@ -66,6 +67,82 @@ struct TripDetailView: View {
             }
             .padding(.vertical)
         }
+    }
+
+    // 旅行期間セクション
+    private var tripPeriodSection: some View {
+        VStack(spacing: 10) {
+            tripStatusBadge
+
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("開始日")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text(formattedDate(currentTrip.startDate))
+                        .font(.headline)
+                }
+
+                Spacer()
+
+                Image(systemName: "arrow.right")
+                    .foregroundColor(.blue)
+
+                Spacer()
+
+                VStack(alignment: .trailing) {
+                    Text("終了日")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text(formattedDate(currentTrip.endDate))
+                        .font(.headline)
+                }
+            }
+
+            Text("旅行期間: \(currentTrip.tripDuration)日間")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .padding(.top, 4)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(UIColor.secondarySystemBackground))
+        )
+        .padding(.horizontal)
+    }
+
+    // 旅行状態バッジ
+    private var tripStatusBadge: some View {
+        let isActive = isTripActive(currentTrip)
+        let isUpcoming = isTripUpcoming(currentTrip)
+        let isPast = isTripPast(currentTrip)
+
+        return HStack {
+            if isActive {
+                statusBadge(text: "現在旅行中", color: .green)
+            } else if isUpcoming {
+                statusBadge(text: "予定", color: .blue)
+            } else if isPast {
+                statusBadge(text: "終了", color: .gray)
+            }
+
+            Spacer()
+        }
+    }
+
+    // ステータスバッジヘルパー
+    private func statusBadge(text: String, color: Color) -> some View {
+        Text(text)
+            .font(.caption)
+            .fontWeight(.semibold)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(color.opacity(0.2))
+            .foregroundColor(color)
+            .cornerRadius(8)
     }
 
     // 通貨情報ヘッダー
@@ -149,6 +226,28 @@ struct TripDetailView: View {
             .cornerRadius(10)
         }
     }
+
+    // 日付をフォーマットするヘルパーメソッド
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    // 旅行の状態を判定するヘルパーメソッド
+    private func isTripActive(_ trip: Trip) -> Bool {
+        let currentDate = Date()
+        return currentDate >= trip.startDate && currentDate <= trip.endDate
+    }
+
+    private func isTripUpcoming(_ trip: Trip) -> Bool {
+        return Date() < trip.startDate
+    }
+
+    private func isTripPast(_ trip: Trip) -> Bool {
+        return Date() > trip.endDate
+    }
 }
 
 
@@ -158,6 +257,8 @@ struct TripDetailView: View {
             trip: Trip(
                 name: "タイ旅行",
                 currency: Currency(code: "THB", name: "タイバーツ"),
+                startDate: Date(),
+                endDate: Date().addingTimeInterval(60*60*24*5),
                 exchangeRecords: [
                     ExchangeRecord(date: Date(), jpyAmount: 10000, displayRate: 3.8, foreignAmount: 2500)
                 ],

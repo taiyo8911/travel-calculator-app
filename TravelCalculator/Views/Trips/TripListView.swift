@@ -46,33 +46,46 @@ struct TripListView: View {
 struct TripRow: View {
     let trip: Trip
 
-    // 国コードから旗の絵文字を取得する関数
-    private func flagEmoji(for countryCode: String) -> String {
-        // 国コードをUnicode地域指標に変換
-        let base: UInt32 = 127397 // Unicode地域指標のベースとなる値
-        var flagString = ""
-
-        // 2文字の国コード（例：US, JP, THB）から先頭2文字だけを使用
-        let codeToUse = String(countryCode.prefix(2)).uppercased()
-
-        for scalar in codeToUse.unicodeScalars {
-            if let scalarValue = UnicodeScalar(base + scalar.value) {
-                flagString.append(Character(scalarValue))
-            }
-        }
-        return flagString
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // 行の上部 - 旅行名と状態
             HStack {
-                Text(flagEmoji(for: trip.currency.code))
-                    .font(.title2)
+                HStack {
+                    Text(flagEmoji(for: trip.currency.code))
+                        .font(.title2)
 
-                Text(trip.name)
-                    .font(.headline)
+                    Text(trip.name)
+                        .font(.headline)
+                }
+
+                Spacer()
+
+                // 旅行の状態バッジ
+                tripStatusBadge
             }
 
+            // 旅行期間
+            HStack {
+                Image(systemName: "calendar")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+
+                Text(formattedDate(trip.startDate))
+                    .font(.subheadline)
+
+                Text("〜")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Text(formattedDate(trip.endDate))
+                    .font(.subheadline)
+
+                Text("(\(trip.tripDuration)日間)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            // 通貨レートと支出額
             HStack {
                 // 1通貨あたりのレートを表示
                 Text("1 \(trip.currency.code) = \(CurrencyFormatter.formatJPY(trip.weightedAverageRate))")
@@ -88,6 +101,53 @@ struct TripRow: View {
         }
         .padding(.vertical, 6)
     }
+
+    // 旅行状態バッジ
+    private var tripStatusBadge: some View {
+        Group {
+            if isTripActive(trip) {
+                statusBadge(text: "現在旅行中", color: .green)
+            } else if isTripUpcoming(trip) {
+                statusBadge(text: "予定", color: .blue)
+            } else if isTripPast(trip) {
+                statusBadge(text: "終了", color: .gray)
+            }
+        }
+    }
+
+    // ステータスバッジヘルパー
+    private func statusBadge(text: String, color: Color) -> some View {
+        Text(text)
+            .font(.caption)
+            .fontWeight(.semibold)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.2))
+            .foregroundColor(color)
+            .cornerRadius(6)
+    }
+
+    // 日付をフォーマットするヘルパーメソッド
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    // 旅行の状態を判定するヘルパーメソッド
+    private func isTripActive(_ trip: Trip) -> Bool {
+        let currentDate = Date()
+        return currentDate >= trip.startDate && currentDate <= trip.endDate
+    }
+
+    private func isTripUpcoming(_ trip: Trip) -> Bool {
+        return Date() < trip.startDate
+    }
+
+    private func isTripPast(_ trip: Trip) -> Bool {
+        return Date() > trip.endDate
+    }
 }
 
 
@@ -99,6 +159,8 @@ struct TripRow: View {
         Trip(
             name: "タイ旅行",
             currency: Currency(code: "THB", name: "タイバーツ"),
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(60*60*24*5),
             exchangeRecords: [
                 ExchangeRecord(date: Date(), jpyAmount: 10000, displayRate: 3.8, foreignAmount: 2500)
             ],
@@ -109,12 +171,22 @@ struct TripRow: View {
         Trip(
             name: "アメリカ旅行",
             currency: Currency(code: "USD", name: "アメリカドル"),
+            startDate: Date().addingTimeInterval(60*60*24*30), // 30日後
+            endDate: Date().addingTimeInterval(60*60*24*40), // 40日後
             exchangeRecords: [
                 ExchangeRecord(date: Date(), jpyAmount: 20000, displayRate: 110.0, foreignAmount: 181.82)
             ],
             purchaseRecords: [
                 PurchaseRecord(date: Date(), foreignAmount: 100, description: "お土産")
             ]
+        ),
+        Trip(
+            name: "ヨーロッパ旅行",
+            currency: Currency(code: "EUR", name: "ユーロ"),
+            startDate: Date().addingTimeInterval(-60*60*24*10), // 10日前
+            endDate: Date().addingTimeInterval(-60*60*24*3), // 3日前
+            exchangeRecords: [],
+            purchaseRecords: []
         )
     ]
     return TripListView()

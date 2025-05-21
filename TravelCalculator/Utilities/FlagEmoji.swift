@@ -9,6 +9,7 @@ import Foundation
 
 
 // 国コードから国旗絵文字に変換するユーティリティ関数
+
 public func flagEmoji(for code: String) -> String {
     // 通貨コードの最初の2文字を国コードとして扱う
     let countryCode = String(code.prefix(2))

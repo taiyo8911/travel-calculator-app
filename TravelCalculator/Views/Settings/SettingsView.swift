@@ -45,8 +45,6 @@ struct SettingsView: View {
         Section(header: Text("アプリ情報")) {
             versionRow
             aboutAppButton
-            privacyPolicyLink
-            supportLink
         }
     }
 
@@ -65,24 +63,6 @@ struct SettingsView: View {
                 Image(systemName: "info.circle")
                 Text("このアプリについて")
             }
-        }
-    }
-
-    private var privacyPolicyLink: some View {
-        Link(destination: URL(string: "https://example.com/privacy")!) {
-            externalLinkContent(
-                icon: "lock.shield",
-                text: "プライバシーポリシー"
-            )
-        }
-    }
-
-    private var supportLink: some View {
-        Link(destination: URL(string: "https://example.com/support")!) {
-            externalLinkContent(
-                icon: "questionmark.circle",
-                text: "ヘルプ・サポート"
-            )
         }
     }
 
