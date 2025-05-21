@@ -69,15 +69,6 @@ struct ExchangeListView: View {
             }
         }
         .navigationTitle("両替履歴")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: {
-                    showingAddExchangeSheet = true
-                }) {
-                    Image(systemName: "plus")
-                }
-            }
-        }
         .sheet(isPresented: $showingAddExchangeSheet) {
             AddExchangeView(trip: trip)
         }

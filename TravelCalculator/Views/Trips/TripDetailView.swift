@@ -42,6 +42,30 @@ struct TripDetailView: View {
         }
         .id(refreshID) // このIDが変わるとビュー全体が再構築される
         .navigationTitle(currentTrip.name)
+        .toolbar {
+            // 現在選択されているタブに応じてボタンを切り替え
+            ToolbarItem(placement: .navigationBarTrailing) {
+                switch selectedTab {
+                case 0: // 概要タブ
+                    Button(action: { sharePDF() }) {
+                        Image(systemName: "square.and.arrow.up")
+                            .accessibilityLabel("PDF出力")
+                    }
+                case 1: // 両替履歴タブ
+                    Button(action: { showingAddExchangeSheet = true }) {
+                        Image(systemName: "plus")
+                            .accessibilityLabel("両替を追加")
+                    }
+                case 2: // 買い物履歴タブ
+                    Button(action: { showingAddPurchaseSheet = true }) {
+                        Image(systemName: "plus")
+                            .accessibilityLabel("買い物を追加")
+                    }
+                default:
+                    EmptyView()
+                }
+            }
+        }
         .sheet(isPresented: $showingAddExchangeSheet) {
             refreshID = UUID()
         } content: {
@@ -247,6 +271,15 @@ struct TripDetailView: View {
 
     private func isTripPast(_ trip: Trip) -> Bool {
         return Date() > trip.endDate
+    }
+
+    // PDF共有メソッド
+    private func sharePDF() {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first?.rootViewController else {
+            return
+        }
+        viewModel.sharePDF(for: currentTrip, from: rootVC)
     }
 }
 

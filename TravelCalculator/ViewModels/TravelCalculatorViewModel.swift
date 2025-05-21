@@ -145,4 +145,30 @@ class TravelCalculatorViewModel: ObservableObject {
             saveData()
         }
     }
+
+    // PDF生成メソッド
+    func generatePDF(for trip: Trip) -> Data? {
+        return PDFGenerator.generateTripPDF(trip: trip)
+    }
+
+    // PDF共有メソッド
+    func sharePDF(for trip: Trip, from viewController: UIViewController) {
+        guard let pdfData = generatePDF(for: trip) else {
+            print("PDFの生成に失敗しました")
+            return
+        }
+
+        // 一時ファイルとしてPDFを保存
+        let tmpURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(trip.name)_旅行記録.pdf")
+
+        do {
+            try pdfData.write(to: tmpURL)
+
+            // 共有シートを表示
+            let activityVC = UIActivityViewController(activityItems: [tmpURL], applicationActivities: nil)
+            viewController.present(activityVC, animated: true)
+        } catch {
+            print("PDF保存エラー: \(error)")
+        }
+    }
 }

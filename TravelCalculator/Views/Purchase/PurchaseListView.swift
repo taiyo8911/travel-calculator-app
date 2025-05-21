@@ -85,16 +85,6 @@ struct PurchaseListView: View {
             }
         }
         .navigationTitle("買い物履歴")
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: {
-                    showingAddPurchaseSheet = true
-                }) {
-                    Image(systemName: "plus")
-                }
-                .disabled(trip.weightedAverageRate <= 0)
-            }
-        }
         .sheet(isPresented: $showingAddPurchaseSheet) {
             AddPurchaseView(trip: trip)
         }
