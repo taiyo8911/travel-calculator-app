@@ -19,6 +19,17 @@ struct ContentView: View {
                         TripDetailView(trip: trip)
                     }
                 }
+                .navigationDestination(for: Trip.self) { trip in
+                    TripDetailView(trip: trip)
+                }
+                // 両替履歴画面への遷移
+                .navigationDestination(for: ExchangeListDestination.self) { destination in
+                    ExchangeListView(trip: destination.trip)
+                }
+                // 買い物履歴画面への遷移
+                .navigationDestination(for: PurchaseListDestination.self) { destination in
+                    PurchaseListView(trip: destination.trip)
+                }
                 .toolbar {
                     ToolbarItemGroup(placement: .bottomBar) {
                         Button(action: {
@@ -40,7 +51,6 @@ struct ContentView: View {
                                 .foregroundColor(.blue)
                         }
                         .accessibilityLabel("旅行を追加")
-
                     }
                 }
         }
@@ -68,12 +78,14 @@ struct ContentView: View {
         // 旅行データがない場合は、ガイドを表示
         .overlay {
             if viewModel.trips.isEmpty {
-                VStack {
+                VStack(spacing: 16) {
                     Image(systemName: "airplane")
                         .font(.system(size: 60))
                         .foregroundColor(.gray)
+
                     Text("旅行がありません")
                         .font(.headline)
+
                     Text("「追加」ボタンをタップして最初の旅行を記録しましょう")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -86,6 +98,14 @@ struct ContentView: View {
     }
 }
 
+// ナビゲーション用の構造体
+struct ExchangeListDestination: Hashable {
+    let trip: Trip
+}
+
+struct PurchaseListDestination: Hashable {
+    let trip: Trip
+}
 
 #Preview{
     ContentView()

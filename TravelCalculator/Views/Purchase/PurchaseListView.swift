@@ -5,7 +5,6 @@
 //  Created by Taiyo KOSHIBA on 2025/04/05.
 //
 
-
 import SwiftUI
 
 struct PurchaseListView: View {
@@ -15,32 +14,37 @@ struct PurchaseListView: View {
     @State private var showingAddPurchaseSheet = false
     @State private var selectedPurchase: PurchaseRecord? = nil
 
+    // 最新のTrip情報を取得
+    private var currentTrip: Trip {
+        viewModel.trips.first(where: { $0.id == trip.id }) ?? trip
+    }
+
     var sortedPurchaseRecords: [PurchaseRecord] {
-        return trip.purchaseRecords.sorted(by: { $0.date > $1.date })
+        return currentTrip.purchaseRecords.sorted(by: { $0.date > $1.date })
     }
 
     var body: some View {
         VStack {
-            if trip.purchaseRecords.isEmpty {
+            if currentTrip.purchaseRecords.isEmpty {
                 // 買い物履歴がない場合の表示
                 VStack(spacing: 20) {
                     Image(systemName: "cart.circle")
                         .font(.system(size: 60))
                         .foregroundColor(.gray)
-                        .opacity(trip.weightedAverageRate > 0 ? 1.0 : 0.5)
+                        .opacity(currentTrip.weightedAverageRate > 0 ? 1.0 : 0.5)
 
                     Text("買い物履歴がありません")
                         .font(.headline)
-                        .opacity(trip.weightedAverageRate > 0 ? 1.0 : 0.5)
+                        .opacity(currentTrip.weightedAverageRate > 0 ? 1.0 : 0.5)
 
                     Text("「追加」ボタンをタップして最初の買い物を記録しましょう")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                        .opacity(trip.weightedAverageRate > 0 ? 1.0 : 0.5)
+                        .opacity(currentTrip.weightedAverageRate > 0 ? 1.0 : 0.5)
 
-                    if trip.weightedAverageRate <= 0 {
+                    if currentTrip.weightedAverageRate <= 0 {
                         Text("買い物を記録するには、先に両替を記録してください")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -56,21 +60,70 @@ struct PurchaseListView: View {
                             Text("買い物を追加")
                         }
                         .padding()
-                        .background(trip.weightedAverageRate > 0 ? Color.green : Color.gray)
+                        .background(currentTrip.weightedAverageRate > 0 ? Color.green : Color.gray)
                         .foregroundColor(.white)
                         .cornerRadius(10)
                     }
                     .padding(.top)
-                    .disabled(trip.weightedAverageRate <= 0)
+                    .disabled(currentTrip.weightedAverageRate <= 0)
                 }
                 .padding()
             } else {
+                // 統計情報ヘッダー
+                VStack(spacing: 8) {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text("合計支出額")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(CurrencyFormatter.formatJPY(currentTrip.totalExpenseInJPY))
+                                .font(.headline)
+                        }
+
+                        Spacer()
+
+                        VStack(alignment: .trailing) {
+                            Text("外貨支出額")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(CurrencyFormatter.formatForeign(totalForeignSpent, currencyCode: currentTrip.currency.code))
+                                .font(.headline)
+                        }
+                    }
+
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text("適用レート")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("1\(currentTrip.currency.code) = \(CurrencyFormatter.formatRate(currentTrip.weightedAverageRate))円")
+                                .font(.subheadline)
+                        }
+
+                        Spacer()
+
+                        VStack(alignment: .trailing) {
+                            Text("買い物回数")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("\(currentTrip.purchaseRecords.count)回")
+                                .font(.subheadline)
+                        }
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                )
+                .padding(.horizontal)
+
                 List {
                     ForEach(sortedPurchaseRecords) { purchase in
                         PurchaseRow(
                             purchase: purchase,
-                            currency: trip.currency,
-                            weightedAverageRate: trip.weightedAverageRate
+                            currency: currentTrip.currency,
+                            weightedAverageRate: currentTrip.weightedAverageRate
                         )
                         .contentShape(Rectangle())
                         .onTapGesture {
@@ -78,67 +131,82 @@ struct PurchaseListView: View {
                         }
                     }
                     .onDelete { indexSet in
-                        viewModel.deletePurchaseRecord(at: indexSet, from: sortedPurchaseRecords, inTripWithId: trip.id)
+                        viewModel.deletePurchaseRecord(at: indexSet, from: sortedPurchaseRecords, inTripWithId: currentTrip.id)
                     }
                 }
                 .listStyle(InsetGroupedListStyle())
             }
         }
         .navigationTitle("買い物履歴")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showingAddPurchaseSheet = true
+                }) {
+                    Image(systemName: "plus")
+                }
+                .disabled(currentTrip.weightedAverageRate <= 0)
+            }
+        }
         .sheet(isPresented: $showingAddPurchaseSheet) {
-            AddPurchaseView(trip: trip)
+            AddPurchaseView(trip: currentTrip)
         }
         .sheet(item: $selectedPurchase) { purchase in
-            EditPurchaseView(trip: trip, purchase: purchase)
+            EditPurchaseView(trip: currentTrip, purchase: purchase)
         }
     }
-}
 
+    // 計算プロパティ
+    private var totalForeignSpent: Double {
+        currentTrip.purchaseRecords.reduce(0) { $0 + $1.foreignAmount }
+    }
+}
 
 struct PurchaseRow: View {
     var purchase: PurchaseRecord
     var currency: Currency
     var weightedAverageRate: Double
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(CurrencyFormatter.formatDate(purchase.date))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                
+
                 Spacer()
             }
-            
+
             if !purchase.description.isEmpty {
                 Text(purchase.description)
                     .font(.headline)
             }
-            
+
             HStack {
                 HStack {
                     Text(CurrencyFormatter.formatForeign(purchase.foreignAmount, currencyCode: currency.code))
                         .font(.headline)
                         .frame(minWidth: 100, alignment: .trailing)
-                    
+
                     Image(systemName: "equal")
                         .foregroundColor(.secondary)
                         .font(.caption)
-                    
+
                     Text(CurrencyFormatter.formatJPY(purchase.jpyAmount(using: weightedAverageRate)))
                         .font(.headline)
                         .frame(minWidth: 100, alignment: .leading)
                 }
-                
+
                 Spacer()
             }
-            
+
             // 適用レート情報
             HStack {
                 Text("レート: 1\(currency.code) = ")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 Text("\(CurrencyFormatter.formatRate(weightedAverageRate))円")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -147,7 +215,6 @@ struct PurchaseRow: View {
         .padding(.vertical, 6)
     }
 }
-
 
 struct PurchaseListView_Previews: PreviewProvider {
     static var previews: some View {
@@ -163,7 +230,7 @@ struct PurchaseListView_Previews: PreviewProvider {
                 PurchaseRecord(date: Date().addingTimeInterval(-43200), foreignAmount: 200, description: "ランチ")
             ]
         )
-        
+
         return NavigationView {
             PurchaseListView(trip: trip)
                 .environmentObject(viewModel)

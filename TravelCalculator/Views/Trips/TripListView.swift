@@ -81,13 +81,7 @@ struct TripRow: View {
             // 通貨レートと支出額
             HStack {
                 // 1通貨あたりのレートを表示
-                Text("1 \(trip.currency.code) = \(CurrencyFormatter.formatJPY(trip.weightedAverageRate))")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                Text("合計支出額: \(CurrencyFormatter.formatJPY(trip.totalExpenseInJPY))")
+                Text("1 \(trip.currency.name) = \(CurrencyFormatter.formatJPY(trip.weightedAverageRate))")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }

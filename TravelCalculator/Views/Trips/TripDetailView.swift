@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct TripDetailView: View {
     @EnvironmentObject private var viewModel: TravelCalculatorViewModel
@@ -14,12 +15,15 @@ struct TripDetailView: View {
     // シート表示状態
     @State private var showingAddExchangeSheet = false
     @State private var showingAddPurchaseSheet = false
-    @State private var refreshID = UUID() // ビューの更新を強制するための変数
-    @State private var selectedTab = 0 // TabView用のセレクション状態
 
     // 最新のTrip情報を取得
     private var currentTrip: Trip {
         viewModel.trips.first(where: { $0.id == trip.id }) ?? trip
+    }
+
+    // データ更新検知用
+    private var dataKey: String {
+        "\(currentTrip.exchangeRecords.count)-\(currentTrip.purchaseRecords.count)-\(currentTrip.weightedAverageRate)"
     }
 
     init(trip: Trip) {
@@ -27,111 +31,284 @@ struct TripDetailView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            homeTab
-                .tabItem { Label("概要", systemImage: "house") }
-                .tag(0)
-
-            ExchangeListView(trip: currentTrip)
-                .tabItem { Label("両替履歴", systemImage: "arrow.left.arrow.right") }
-                .tag(1)
-
-            PurchaseListView(trip: currentTrip)
-                .tabItem { Label("買い物履歴", systemImage: "cart") }
-                .tag(2)
+        ScrollView {
+            VStack(spacing: 24) {
+                tripHeaderSection
+                summaryCardsSection
+                recentExchangesSection
+                recentPurchasesSection
+                actionButtonsSection
+            }
+            .padding(.vertical)
         }
-        .id(refreshID) // このIDが変わるとビュー全体が再構築される
+        .id(dataKey) // データの変更を検知してビューを更新
         .navigationTitle(currentTrip.name)
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            // 現在選択されているタブに応じてボタンを切り替え
             ToolbarItem(placement: .navigationBarTrailing) {
-                switch selectedTab {
-                case 0: // 概要タブ
-                    Button(action: { sharePDF() }) {
-                        Image(systemName: "square.and.arrow.up")
-                            .accessibilityLabel("PDF出力")
-                    }
-                case 1: // 両替履歴タブ
-                    Button(action: { showingAddExchangeSheet = true }) {
-                        Image(systemName: "plus")
-                            .accessibilityLabel("両替を追加")
-                    }
-                case 2: // 買い物履歴タブ
-                    Button(action: { showingAddPurchaseSheet = true }) {
-                        Image(systemName: "plus")
-                            .accessibilityLabel("買い物を追加")
-                    }
-                default:
-                    EmptyView()
+                Button(action: { sharePDF() }) {
+                    Image(systemName: "square.and.arrow.up")
+                        .accessibilityLabel("PDF出力")
                 }
             }
         }
         .sheet(isPresented: $showingAddExchangeSheet) {
-            refreshID = UUID()
-        } content: {
             AddExchangeView(trip: currentTrip)
         }
         .sheet(isPresented: $showingAddPurchaseSheet) {
-            refreshID = UUID()
-        } content: {
             AddPurchaseView(trip: currentTrip)
         }
+        .onReceive(viewModel.$trips) { _ in
+            // ViewModelのtripsが更新されたときに強制的にビューを更新
+        }
     }
 
-    // ホームタブのコンテンツ
-    private var homeTab: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                tripPeriodSection
-                currencyHeader
+    // MARK: - 旅行ヘッダーセクション
+    private var tripHeaderSection: some View {
+        VStack(spacing: 12) {
+            // 期間と状態
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("旅行期間")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    HStack(spacing: 8) {
+                        Text(formattedDate(currentTrip.startDate))
+                            .font(.headline)
+
+                        Text("〜")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+
+                        Text(formattedDate(currentTrip.endDate))
+                            .font(.headline)
+                    }
+
+                    Text("\(currentTrip.tripDuration)日間")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
                 Spacer()
-                summarySection
-                Spacer()
-                actionButtons
+
+                tripStatusBadge
             }
-            .padding(.vertical)
+            .padding(.horizontal)
+
+            // 通貨情報
+            HStack(spacing: 8) {
+                Text(flagEmoji(for: "JP"))
+                    .font(.title2)
+
+                Text("JPY")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Image(systemName: "arrow.right")
+                    .foregroundColor(.blue)
+                    .padding(.horizontal, 4)
+
+                Text(flagEmoji(for: currentTrip.currency.code))
+                    .font(.title2)
+
+                Text(currentTrip.currency.code)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Text("(\(currentTrip.currency.name))")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal)
         }
     }
 
-    // 旅行期間セクション
-    private var tripPeriodSection: some View {
-        HStack(spacing: 8) {
-            Text(formattedDate(currentTrip.startDate))
-                .font(.headline)
+    // MARK: - サマリーカードセクション
+    private var summaryCardsSection: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 16) {
+                // 平均レートカード
+                SummaryCard(
+                    title: "平均レート",
+                    value: currentTrip.weightedAverageRate > 0 ?
+                        "1\(currentTrip.currency.code) = \(CurrencyFormatter.formatRate(currentTrip.weightedAverageRate))円" : "データなし",
+                    icon: "arrow.left.arrow.right.circle.fill",
+                    color: .blue
+                )
 
-            Text("〜")
-                .font(.headline)
+                // 合計両替額カード
+                SummaryCard(
+                    title: "合計両替額",
+                    value: CurrencyFormatter.formatJPY(totalExchangeAmount),
+                    icon: "yensign.circle.fill",
+                    color: .orange
+                )
+            }
 
-            Text(formattedDate(currentTrip.endDate))
-                .font(.headline)
+            HStack(spacing: 16) {
+                // 合計支出額カード
+                SummaryCard(
+                    title: "合計支出額",
+                    value: CurrencyFormatter.formatJPY(currentTrip.totalExpenseInJPY),
+                    icon: "cart.circle.fill",
+                    color: .green
+                )
 
-            tripStatusBadge
+                // 残り外貨カード
+                SummaryCard(
+                    title: "残り外貨",
+                    value: remainingForeignText,
+                    icon: "banknote.circle.fill",
+                    color: .purple
+                )
+            }
+        }
+    }
 
+    // MARK: - 最近の両替セクション
+    private var recentExchangesSection: some View {
+        VStack(spacing: 12) {
+            HStack {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.left.arrow.right")
+                        .foregroundColor(.blue)
+
+                    Text("最近の両替")
+                        .font(.headline)
+
+                    if !currentTrip.exchangeRecords.isEmpty {
+                        Text("(\(currentTrip.exchangeRecords.count)件)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                if !currentTrip.exchangeRecords.isEmpty {
+                    NavigationLink(destination: ExchangeListView(trip: currentTrip)) {
+                        HStack(spacing: 4) {
+                            Text("すべて見る")
+                                .font(.subheadline)
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                        }
+                        .foregroundColor(.blue)
+                    }
+                }
+            }
+            .padding(.horizontal)
+
+            if currentTrip.exchangeRecords.isEmpty {
+                emptyStateView(
+                    icon: "arrow.left.arrow.right.circle",
+                    title: "両替記録がありません",
+                    description: "最初の両替を記録しましょう"
+                )
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(currentTrip.recentExchangeRecords) { exchange in
+                            ExchangeCard(exchange: exchange, currency: currentTrip.currency)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+        }
+    }
+
+    // MARK: - 最近の買い物セクション
+    private var recentPurchasesSection: some View {
+        VStack(spacing: 12) {
+            HStack {
+                HStack(spacing: 8) {
+                    Image(systemName: "cart")
+                        .foregroundColor(.green)
+
+                    Text("最近の買い物")
+                        .font(.headline)
+
+                    if !currentTrip.purchaseRecords.isEmpty {
+                        Text("(\(currentTrip.purchaseRecords.count)件)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                if !currentTrip.purchaseRecords.isEmpty {
+                    NavigationLink(destination: PurchaseListView(trip: currentTrip)) {
+                        HStack(spacing: 4) {
+                            Text("すべて見る")
+                                .font(.subheadline)
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                        }
+                        .foregroundColor(.blue)
+                    }
+                }
+            }
+            .padding(.horizontal)
+
+            if currentTrip.purchaseRecords.isEmpty {
+                emptyStateView(
+                    icon: "cart.circle",
+                    title: "買い物記録がありません",
+                    description: currentTrip.weightedAverageRate > 0 ?
+                        "最初の買い物を記録しましょう" : "先に両替を記録してください"
+                )
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(currentTrip.recentPurchaseRecords) { purchase in
+                            PurchaseCard(
+                                purchase: purchase,
+                                currency: currentTrip.currency,
+                                weightedAverageRate: currentTrip.weightedAverageRate
+                            )
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+        }
+    }
+
+    // MARK: - アクションボタンセクション
+    private var actionButtonsSection: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                actionButton(
+                    title: "両替を追加",
+                    icon: "plus.circle.fill",
+                    color: .blue,
+                    action: { showingAddExchangeSheet = true }
+                )
+
+                actionButton(
+                    title: "買い物を追加",
+                    icon: "cart.badge.plus",
+                    color: .green,
+                    disabled: currentTrip.weightedAverageRate <= 0,
+                    action: { showingAddPurchaseSheet = true }
+                )
+            }
+
+            if currentTrip.weightedAverageRate <= 0 {
+                Text("買い物を記録するには、先に両替を記録してください")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
         }
         .padding(.horizontal)
     }
 
-    // 通貨情報ヘッダー
-    private var currencyHeader: some View {
-        HStack(spacing: 8) {
-            Text(flagEmoji(for: "JP"))
-                .font(.title2)
-
-            Text("日本円 (JPY)")
-                .font(.headline)
-
-            Image(systemName: "arrow.right")
-                .foregroundColor(.blue)
-                .padding(.horizontal, 4)
-
-            Text(flagEmoji(for: currentTrip.currency.code))
-                .font(.title2)
-
-            Text("\(currentTrip.currency.name) (\(currentTrip.currency.code))")
-                .font(.headline)
-        }
-        .padding(.horizontal)
-    }
+    // MARK: - ヘルパービュー
 
     // 旅行状態バッジ
     private var tripStatusBadge: some View {
@@ -139,7 +316,7 @@ struct TripDetailView: View {
         let isUpcoming = isTripUpcoming(currentTrip)
         let isPast = isTripPast(currentTrip)
 
-        return HStack {
+        return Group {
             if isActive {
                 statusBadge(text: "現在旅行中", color: .green)
             } else if isUpcoming {
@@ -150,7 +327,7 @@ struct TripDetailView: View {
         }
     }
 
-    // ステータスバッジヘルパー
+    // ステータスバッジ
     private func statusBadge(text: String, color: Color) -> some View {
         Text(text)
             .font(.caption)
@@ -162,67 +339,81 @@ struct TripDetailView: View {
             .cornerRadius(8)
     }
 
-    // サマリーカード
-    private var summarySection: some View {
-        VStack(spacing: 16) {
-            SummaryCard(
-                title: "平均レート",
-                value: currentTrip.weightedAverageRate > 0 ?
-                    "1\(currentTrip.currency.code) = \(CurrencyFormatter.formatRate(currentTrip.weightedAverageRate))円" : "両替データがありません",
-                icon: "arrow.left.arrow.right.circle.fill",
-                color: .blue
-            )
+    // 空状態ビュー
+    private func emptyStateView(icon: String, title: String, description: String) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 40))
+                .foregroundColor(.gray.opacity(0.6))
 
-            SummaryCard(
-                title: "合計支出額（円）",
-                value: CurrencyFormatter.formatJPY(currentTrip.totalExpenseInJPY),
-                icon: "yensign.circle.fill",
-                color: .green
-            )
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+
+            Text(description)
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
-    }
-
-    // アクションボタン
-    private var actionButtons: some View {
-        HStack(spacing: 12) {
-            actionButton(
-                title: "両替を追加",
-                icon: "plus.circle",
-                color: .blue,
-                action: { showingAddExchangeSheet = true }
-            )
-
-            actionButton(
-                title: "買い物を追加",
-                icon: "cart.badge.plus",
-                color: .green,
-                action: { showingAddPurchaseSheet = true }
-            )
-        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(UIColor.secondarySystemBackground))
+        )
         .padding(.horizontal)
     }
 
-    // アクションボタンの共通部分
+    // アクションボタン
     private func actionButton(
         title: String,
         icon: String,
         color: Color,
+        disabled: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            HStack {
+            HStack(spacing: 8) {
                 Image(systemName: icon)
                 Text(title)
+                    .fontWeight(.medium)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, 14)
             .foregroundColor(.white)
-            .background(color)
-            .cornerRadius(10)
+            .background(disabled ? Color.gray : color)
+            .cornerRadius(12)
         }
+        .disabled(disabled)
     }
 
-    // 日付をフォーマットするヘルパーメソッド
+    // MARK: - 計算プロパティ
+
+    private var totalExchangeAmount: Double {
+        currentTrip.exchangeRecords.reduce(0) { $0 + $1.jpyAmount }
+    }
+
+    private var totalForeignObtained: Double {
+        currentTrip.exchangeRecords.reduce(0) { $0 + $1.foreignAmount }
+    }
+
+    private var totalForeignSpent: Double {
+        currentTrip.purchaseRecords.reduce(0) { $0 + $1.foreignAmount }
+    }
+
+    private var remainingForeign: Double {
+        totalForeignObtained - totalForeignSpent
+    }
+
+    private var remainingForeignText: String {
+        if totalForeignObtained <= 0 {
+            return "データなし"
+        }
+        return CurrencyFormatter.formatForeign(remainingForeign, currencyCode: currentTrip.currency.code)
+    }
+
+    // MARK: - ヘルパーメソッド
+
     private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -230,7 +421,6 @@ struct TripDetailView: View {
         return formatter.string(from: date)
     }
 
-    // 旅行の状態を判定するヘルパーメソッド
     private func isTripActive(_ trip: Trip) -> Bool {
         let currentDate = Date()
         return currentDate >= trip.startDate && currentDate <= trip.endDate
@@ -244,7 +434,6 @@ struct TripDetailView: View {
         return Date() > trip.endDate
     }
 
-    // PDF共有メソッド
     private func sharePDF() {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootVC = windowScene.windows.first?.rootViewController else {
@@ -253,7 +442,6 @@ struct TripDetailView: View {
         viewModel.sharePDF(for: currentTrip, from: rootVC)
     }
 }
-
 
 #Preview {
     NavigationView {
@@ -264,14 +452,15 @@ struct TripDetailView: View {
                 startDate: Date(),
                 endDate: Date().addingTimeInterval(60*60*24*5),
                 exchangeRecords: [
-                    ExchangeRecord(date: Date(), jpyAmount: 10000, displayRate: 3.8, foreignAmount: 2500)
+                    ExchangeRecord(date: Date(), jpyAmount: 10000, displayRate: 3.8, foreignAmount: 2500),
+                    ExchangeRecord(date: Date().addingTimeInterval(-86400), jpyAmount: 5000, displayRate: 3.9, foreignAmount: 1200)
                 ],
                 purchaseRecords: [
-                    PurchaseRecord(date: Date(), foreignAmount: 500, description: "お土産")
+                    PurchaseRecord(date: Date(), foreignAmount: 500, description: "お土産"),
+                    PurchaseRecord(date: Date().addingTimeInterval(-43200), foreignAmount: 200, description: "ランチ")
                 ]
             )
         )
         .environmentObject(TravelCalculatorViewModel())
-        .navigationViewStyle(StackNavigationViewStyle())
     }
 }

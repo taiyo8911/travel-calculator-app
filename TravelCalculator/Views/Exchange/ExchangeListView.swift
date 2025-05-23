@@ -5,7 +5,6 @@
 //  Created by Taiyo KOSHIBA on 2025/04/05.
 //
 
-
 import SwiftUI
 
 struct ExchangeListView: View {
@@ -15,13 +14,18 @@ struct ExchangeListView: View {
     @State private var showingAddExchangeSheet = false
     @State private var selectedExchange: ExchangeRecord? = nil
 
+    // 最新のTrip情報を取得
+    private var currentTrip: Trip {
+        viewModel.trips.first(where: { $0.id == trip.id }) ?? trip
+    }
+
     var sortedExchangeRecords: [ExchangeRecord] {
-        return trip.exchangeRecords.sorted(by: { $0.date > $1.date })
+        return currentTrip.exchangeRecords.sorted(by: { $0.date > $1.date })
     }
 
     var body: some View {
         VStack {
-            if trip.exchangeRecords.isEmpty {
+            if currentTrip.exchangeRecords.isEmpty {
                 // 両替履歴がない場合の表示
                 VStack(spacing: 20) {
                     Image(systemName: "arrow.left.arrow.right.circle")
@@ -53,31 +57,98 @@ struct ExchangeListView: View {
                 }
                 .padding()
             } else {
+                // 統計情報ヘッダー
+                VStack(spacing: 8) {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text("合計両替額")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(CurrencyFormatter.formatJPY(totalJPYAmount))
+                                .font(.headline)
+                        }
+
+                        Spacer()
+
+                        VStack(alignment: .trailing) {
+                            Text("取得外貨")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(CurrencyFormatter.formatForeign(totalForeignAmount, currencyCode: currentTrip.currency.code))
+                                .font(.headline)
+                        }
+                    }
+
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text("平均レート")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("1\(currentTrip.currency.code) = \(CurrencyFormatter.formatRate(currentTrip.weightedAverageRate))円")
+                                .font(.subheadline)
+                        }
+
+                        Spacer()
+
+                        VStack(alignment: .trailing) {
+                            Text("両替回数")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("\(currentTrip.exchangeRecords.count)回")
+                                .font(.subheadline)
+                        }
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                )
+                .padding(.horizontal)
+
                 List {
                     ForEach(sortedExchangeRecords) { exchange in
-                        ExchangeRow(exchange: exchange, currency: trip.currency)
+                        ExchangeRow(exchange: exchange, currency: currentTrip.currency)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 selectedExchange = exchange
                             }
                     }
                     .onDelete { indexSet in
-                        viewModel.deleteExchangeRecord(at: indexSet, from: sortedExchangeRecords, inTripWithId: trip.id)
+                        viewModel.deleteExchangeRecord(at: indexSet, from: sortedExchangeRecords, inTripWithId: currentTrip.id)
                     }
                 }
                 .listStyle(InsetGroupedListStyle())
             }
         }
         .navigationTitle("両替履歴")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showingAddExchangeSheet = true
+                }) {
+                    Image(systemName: "plus")
+                }
+            }
+        }
         .sheet(isPresented: $showingAddExchangeSheet) {
-            AddExchangeView(trip: trip)
+            AddExchangeView(trip: currentTrip)
         }
         .sheet(item: $selectedExchange) { exchange in
-            EditExchangeView(trip: trip, exchange: exchange)
+            EditExchangeView(trip: currentTrip, exchange: exchange)
         }
     }
-}
 
+    // 計算プロパティ
+    private var totalJPYAmount: Double {
+        currentTrip.exchangeRecords.reduce(0) { $0 + $1.jpyAmount }
+    }
+
+    private var totalForeignAmount: Double {
+        currentTrip.exchangeRecords.reduce(0) { $0 + $1.foreignAmount }
+    }
+}
 
 struct ExchangeRow: View {
     var exchange: ExchangeRecord
@@ -149,7 +220,6 @@ struct ExchangeRow: View {
         .padding(.vertical, 6)
     }
 }
-
 
 struct ExchangeListView_Previews: PreviewProvider {
     static var previews: some View {
