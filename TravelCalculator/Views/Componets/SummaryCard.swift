@@ -46,9 +46,9 @@ struct SummaryCard: View {
 
 #Preview {
     SummaryCard(
-        title: "歩数",
-        value: "8,742",
-        icon: "figure.walk",
+        title: "両替レート",
+        value: "1 USD = 110 JPY",
+        icon: "arrow.left.arrow.right.circle",
         color: .blue
     )
 }

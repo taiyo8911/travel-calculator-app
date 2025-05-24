@@ -3,7 +3,7 @@
 //  TravelCalculator
 //
 //  Created by Taiyo KOSHIBA on 2025/04/05.
-//
+
 
 
 import SwiftUI
@@ -112,3 +112,5 @@ struct AddTripView: View {
             .environmentObject(TravelCalculatorViewModel())
     }
 }
+
+

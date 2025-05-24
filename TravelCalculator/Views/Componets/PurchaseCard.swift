@@ -12,7 +12,7 @@ struct PurchaseCard: View {
     var purchase: PurchaseRecord
     var currency: Currency
     var weightedAverageRate: Double
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack {
@@ -22,31 +22,56 @@ struct PurchaseCard: View {
                     .padding(.vertical, 4)
                     .background(Color.green.opacity(0.2))
                     .cornerRadius(4)
-                
+
                 Spacer()
-                
+
                 Text(CurrencyFormatter.formatDate(purchase.date))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Divider()
-            
+
             if !purchase.description.isEmpty {
                 Text(purchase.description)
                     .font(.subheadline)
                     .lineLimit(1)
             }
-            
+
             HStack {
                 Text("\(CurrencyFormatter.formatForeign(purchase.foreignAmount, currencyCode: currency.code))")
                     .font(.headline)
-                
+
                 Spacer()
-                
-                Text("\(CurrencyFormatter.formatJPY(purchase.jpyAmount(using: weightedAverageRate)))")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+
+                if weightedAverageRate > 0 {
+                    Text("\(CurrencyFormatter.formatJPY(purchase.jpyAmount(using: weightedAverageRate)))")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                } else {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("計算不可")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        Text("両替記録なし")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
+                }
+            }
+
+            // 警告表示（両替記録がない場合）
+            if weightedAverageRate <= 0 {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                        .font(.caption)
+                    Text("両替記録が無いため日本円換算できません")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                        .lineLimit(2)
+                }
+                .padding(.top, 2)
             }
         }
         .padding()

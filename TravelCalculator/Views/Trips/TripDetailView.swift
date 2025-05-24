@@ -127,42 +127,39 @@ struct TripDetailView: View {
     // MARK: - サマリーカードセクション
     private var summaryCardsSection: some View {
         VStack(spacing: 16) {
-            HStack(spacing: 16) {
-                // 平均レートカード
-                SummaryCard(
-                    title: "平均レート",
-                    value: currentTrip.weightedAverageRate > 0 ?
-                        "1\(currentTrip.currency.code) = \(CurrencyFormatter.formatRate(currentTrip.weightedAverageRate))円" : "データなし",
-                    icon: "arrow.left.arrow.right.circle.fill",
-                    color: .blue
-                )
+            // 平均レートカード
+            SummaryCard(
+                title: "平均レート",
+                value: currentTrip.weightedAverageRate > 0 ?
+                "1\(currentTrip.currency.code) = \(CurrencyFormatter.formatRate(currentTrip.weightedAverageRate))円" : "両替記録がありません",
+                icon: "arrow.left.arrow.right.circle.fill",
+                color: currentTrip.weightedAverageRate > 0 ? .blue : .orange
+            )
 
-                // 合計両替額カード
-                SummaryCard(
-                    title: "合計両替額",
-                    value: CurrencyFormatter.formatJPY(totalExchangeAmount),
-                    icon: "yensign.circle.fill",
-                    color: .orange
-                )
-            }
+            // 合計両替額カード
+            SummaryCard(
+                title: "合計両替額",
+                value: CurrencyFormatter.formatJPY(totalExchangeAmount),
+                icon: "yensign.circle.fill",
+                color: .orange
+            )
 
-            HStack(spacing: 16) {
-                // 合計支出額カード
-                SummaryCard(
-                    title: "合計支出額",
-                    value: CurrencyFormatter.formatJPY(currentTrip.totalExpenseInJPY),
-                    icon: "cart.circle.fill",
-                    color: .green
-                )
+            // 合計支出額カード
+            SummaryCard(
+                title: "合計支出額",
+                value: currentTrip.weightedAverageRate > 0 ?
+                CurrencyFormatter.formatJPY(currentTrip.totalExpenseInJPY) : "計算不可",
+                icon: "cart.circle.fill",
+                color: currentTrip.weightedAverageRate > 0 ? .green : .orange
+            )
 
-                // 残り外貨カード
-                SummaryCard(
-                    title: "残り外貨",
-                    value: remainingForeignText,
-                    icon: "banknote.circle.fill",
-                    color: .purple
-                )
-            }
+            // 残り外貨カード
+            SummaryCard(
+                title: "残り外貨",
+                value: remainingForeignText,
+                icon: "dollarsign.circle.fill",
+                color: .purple
+            )
         }
     }
 
@@ -257,8 +254,7 @@ struct TripDetailView: View {
                 emptyStateView(
                     icon: "cart.circle",
                     title: "買い物記録がありません",
-                    description: currentTrip.weightedAverageRate > 0 ?
-                        "最初の買い物を記録しましょう" : "先に両替を記録してください"
+                    description: "最初の買い物を記録しましょう"
                 )
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -292,17 +288,8 @@ struct TripDetailView: View {
                     title: "買い物を追加",
                     icon: "cart.badge.plus",
                     color: .green,
-                    disabled: currentTrip.weightedAverageRate <= 0,
                     action: { showingAddPurchaseSheet = true }
                 )
-            }
-
-            if currentTrip.weightedAverageRate <= 0 {
-                Text("買い物を記録するには、先に両替を記録してください")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
             }
         }
         .padding(.horizontal)

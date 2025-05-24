@@ -12,41 +12,57 @@ struct AddPurchaseView: View {
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var viewModel: TravelCalculatorViewModel
     var trip: Trip
-    
+
     @State private var foreignAmount: String = ""
     @State private var description: String = ""
     @State private var date: Date = Date()
-    
+
     var body: some View {
         NavigationView {
             Form {
                 Section(header: Text("買い物情報")) {
                     DatePicker("日付", selection: $date, displayedComponents: .date)
-                    
+
                     TextField("商品・サービス内容", text: $description)
-                    
+
                     HStack {
                         TextField("金額", text: $foreignAmount)
                             .keyboardType(.decimalPad)
-                        
+
                         Text(trip.currency.code)
                             .foregroundColor(.secondary)
                     }
                 }
-                
+
                 if let amount = Double(foreignAmount), amount > 0 {
                     Section(header: Text("日本円換算")) {
-                        HStack {
-                            Text("日本円:")
-                            Spacer()
-                            Text(CurrencyFormatter.formatJPY(calculateJPYAmount()))
-                                .fontWeight(.semibold)
-                        }
-                        
-                        HStack {
-                            Text("適用レート:")
-                            Spacer()
-                            Text("1\(trip.currency.code) = \(CurrencyFormatter.formatRate(trip.weightedAverageRate))円")
+                        if trip.weightedAverageRate > 0 {
+                            HStack {
+                                Text("日本円:")
+                                Spacer()
+                                Text(CurrencyFormatter.formatJPY(calculateJPYAmount()))
+                                    .fontWeight(.semibold)
+                            }
+
+                            HStack {
+                                Text("適用レート:")
+                                Spacer()
+                                Text("1\(trip.currency.code) = \(CurrencyFormatter.formatRate(trip.weightedAverageRate))円")
+                            }
+                        } else {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                VStack(alignment: .leading) {
+                                    Text("両替記録が無いため計算できません")
+                                        .font(.subheadline)
+                                        .foregroundColor(.orange)
+                                    Text("両替を記録すると自動的に日本円換算されます")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 4)
                         }
                     }
                 }
@@ -63,40 +79,34 @@ struct AddPurchaseView: View {
             )
         }
     }
-    
+
     private var isFormValid: Bool {
         guard let amount = Double(foreignAmount) else {
             return false
         }
-        
-        // 加重平均レートが0の場合は追加できない
-        if trip.weightedAverageRate <= 0 {
-            return false
-        }
-        
         return amount > 0
     }
-    
+
     // 日本円換算額を計算
     private func calculateJPYAmount() -> Double {
         guard let amount = Double(foreignAmount) else {
             return 0
         }
-        
+
         return amount * trip.weightedAverageRate
     }
-    
+
     private func savePurchase() {
         guard let amount = Double(foreignAmount) else {
             return
         }
-        
+
         let newPurchase = PurchaseRecord(
             date: date,
             foreignAmount: amount,
             description: description
         )
-        
+
         viewModel.addPurchaseRecord(newPurchase, toTripWithId: trip.id)
         presentationMode.wrappedValue.dismiss()
     }
@@ -112,7 +122,7 @@ struct AddPurchaseView_Previews: PreviewProvider {
                 ExchangeRecord(date: Date(), jpyAmount: 10000, displayRate: 3.8, foreignAmount: 2500)
             ]
         )
-        
+
         return AddPurchaseView(trip: trip)
             .environmentObject(viewModel)
     }

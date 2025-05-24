@@ -31,26 +31,15 @@ struct PurchaseListView: View {
                     Image(systemName: "cart.circle")
                         .font(.system(size: 60))
                         .foregroundColor(.gray)
-                        .opacity(currentTrip.weightedAverageRate > 0 ? 1.0 : 0.5)
 
                     Text("買い物履歴がありません")
                         .font(.headline)
-                        .opacity(currentTrip.weightedAverageRate > 0 ? 1.0 : 0.5)
 
                     Text("「追加」ボタンをタップして最初の買い物を記録しましょう")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                        .opacity(currentTrip.weightedAverageRate > 0 ? 1.0 : 0.5)
-
-                    if currentTrip.weightedAverageRate <= 0 {
-                        Text("買い物を記録するには、先に両替を記録してください")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding()
-                    }
 
                     Button(action: {
                         showingAddPurchaseSheet = true
@@ -60,54 +49,87 @@ struct PurchaseListView: View {
                             Text("買い物を追加")
                         }
                         .padding()
-                        .background(currentTrip.weightedAverageRate > 0 ? Color.green : Color.gray)
+                        .background(Color.green)
                         .foregroundColor(.white)
                         .cornerRadius(10)
                     }
                     .padding(.top)
-                    .disabled(currentTrip.weightedAverageRate <= 0)
                 }
                 .padding()
             } else {
                 // 統計情報ヘッダー
                 VStack(spacing: 8) {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("合計支出額")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(CurrencyFormatter.formatJPY(currentTrip.totalExpenseInJPY))
-                                .font(.headline)
+                    if currentTrip.weightedAverageRate > 0 {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("合計支出額")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(CurrencyFormatter.formatJPY(currentTrip.totalExpenseInJPY))
+                                    .font(.headline)
+                            }
+
+                            Spacer()
+
+                            VStack(alignment: .trailing) {
+                                Text("外貨支出額")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(CurrencyFormatter.formatForeign(totalForeignSpent, currencyCode: currentTrip.currency.code))
+                                    .font(.headline)
+                            }
                         }
 
-                        Spacer()
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("適用レート")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("1\(currentTrip.currency.code) = \(CurrencyFormatter.formatRate(currentTrip.weightedAverageRate))円")
+                                    .font(.subheadline)
+                            }
 
-                        VStack(alignment: .trailing) {
-                            Text("外貨支出額")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text(CurrencyFormatter.formatForeign(totalForeignSpent, currencyCode: currentTrip.currency.code))
-                                .font(.headline)
+                            Spacer()
+
+                            VStack(alignment: .trailing) {
+                                Text("買い物回数")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("\(currentTrip.purchaseRecords.count)回")
+                                    .font(.subheadline)
+                            }
                         }
-                    }
+                    } else {
+                        // 両替記録がない場合の警告表示
+                        VStack(spacing: 8) {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                Text("両替記録がないため日本円換算ができません")
+                                    .font(.subheadline)
+                                    .foregroundColor(.orange)
+                                Spacer()
+                            }
 
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("適用レート")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("1\(currentTrip.currency.code) = \(CurrencyFormatter.formatRate(currentTrip.weightedAverageRate))円")
-                                .font(.subheadline)
-                        }
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text("外貨支出額")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text(CurrencyFormatter.formatForeign(totalForeignSpent, currencyCode: currentTrip.currency.code))
+                                        .font(.headline)
+                                }
 
-                        Spacer()
+                                Spacer()
 
-                        VStack(alignment: .trailing) {
-                            Text("買い物回数")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("\(currentTrip.purchaseRecords.count)回")
-                                .font(.subheadline)
+                                VStack(alignment: .trailing) {
+                                    Text("買い物回数")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text("\(currentTrip.purchaseRecords.count)回")
+                                        .font(.subheadline)
+                                }
+                            }
                         }
                     }
                 }
@@ -146,7 +168,6 @@ struct PurchaseListView: View {
                 }) {
                     Image(systemName: "plus")
                 }
-                .disabled(currentTrip.weightedAverageRate <= 0)
             }
         }
         .sheet(isPresented: $showingAddPurchaseSheet) {
@@ -193,23 +214,41 @@ struct PurchaseRow: View {
                         .foregroundColor(.secondary)
                         .font(.caption)
 
-                    Text(CurrencyFormatter.formatJPY(purchase.jpyAmount(using: weightedAverageRate)))
-                        .font(.headline)
-                        .frame(minWidth: 100, alignment: .leading)
+                    if weightedAverageRate > 0 {
+                        Text(CurrencyFormatter.formatJPY(purchase.jpyAmount(using: weightedAverageRate)))
+                            .font(.headline)
+                            .frame(minWidth: 100, alignment: .leading)
+                    } else {
+                        Text("計算不可")
+                            .font(.headline)
+                            .foregroundColor(.orange)
+                            .frame(minWidth: 100, alignment: .leading)
+                    }
                 }
 
                 Spacer()
             }
 
             // 適用レート情報
-            HStack {
-                Text("レート: 1\(currency.code) = ")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            if weightedAverageRate > 0 {
+                HStack {
+                    Text("レート: 1\(currency.code) = ")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
 
-                Text("\(CurrencyFormatter.formatRate(weightedAverageRate))円")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    Text("\(CurrencyFormatter.formatRate(weightedAverageRate))円")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                        .font(.caption)
+                    Text("両替記録が無いため日本円換算できません")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
             }
         }
         .padding(.vertical, 6)

@@ -74,3 +74,4 @@ struct Trip: Codable, Identifiable, Hashable {
         return lhs.id == rhs.id
     }
 }
+

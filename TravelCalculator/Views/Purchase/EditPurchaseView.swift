@@ -11,14 +11,14 @@ import SwiftUI
 struct EditPurchaseView: View {
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var viewModel: TravelCalculatorViewModel
-    
+
     var trip: Trip
     var purchase: PurchaseRecord
-    
+
     @State private var date: Date
     @State private var foreignAmount: String
     @State private var description: String
-    
+
     // フォームのバリデーション
     private var isFormValid: Bool {
         guard let foreignValue = Double(foreignAmount), foreignValue > 0 else {
@@ -26,24 +26,24 @@ struct EditPurchaseView: View {
         }
         return !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
-    
+
     // イニシャライザ
     init(trip: Trip, purchase: PurchaseRecord) {
         self.trip = trip
         self.purchase = purchase
-        
+
         // 初期値を設定
         _date = State(initialValue: purchase.date)
         _foreignAmount = State(initialValue: String(format: "%.2f", purchase.foreignAmount))
         _description = State(initialValue: purchase.description)
     }
-    
+
     var body: some View {
         NavigationView {
             Form {
                 Section(header: Text("買い物情報")) {
                     DatePicker("日付", selection: $date, displayedComponents: .date)
-                    
+
                     HStack {
                         Text("\(trip.currency.code)金額")
                         Spacer()
@@ -54,22 +54,38 @@ struct EditPurchaseView: View {
 
                     TextField("買い物メモ", text: $description)
                 }
-                
+
                 // プレビューセクション
                 if isFormValid, let foreignValue = Double(foreignAmount) {
                     Section(header: Text("日本円換算")) {
-                        let jpyValue = foreignValue * trip.weightedAverageRate
-                        
-                        HStack {
-                            Text("日本円換算額:")
-                            Spacer()
-                            Text(CurrencyFormatter.formatJPY(jpyValue))
-                        }
-                        
-                        HStack {
-                            Text("適用レート:")
-                            Spacer()
-                            Text("1\(trip.currency.code) = \(CurrencyFormatter.formatRate(trip.weightedAverageRate))円")
+                        if trip.weightedAverageRate > 0 {
+                            let jpyValue = foreignValue * trip.weightedAverageRate
+
+                            HStack {
+                                Text("日本円換算額:")
+                                Spacer()
+                                Text(CurrencyFormatter.formatJPY(jpyValue))
+                            }
+
+                            HStack {
+                                Text("適用レート:")
+                                Spacer()
+                                Text("1\(trip.currency.code) = \(CurrencyFormatter.formatRate(trip.weightedAverageRate))円")
+                            }
+                        } else {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                VStack(alignment: .leading) {
+                                    Text("両替記録が無いため計算できません")
+                                        .font(.subheadline)
+                                        .foregroundColor(.orange)
+                                    Text("両替を記録すると自動的に日本円換算されます")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 4)
                         }
                     }
                 }
@@ -86,12 +102,12 @@ struct EditPurchaseView: View {
             )
         }
     }
-    
+
     private func savePurchaseRecord() {
         guard let foreignValue = Double(foreignAmount) else {
             return
         }
-        
+
         // 更新された記録を作成
         let updatedRecord = PurchaseRecord(
             id: purchase.id,
@@ -99,10 +115,10 @@ struct EditPurchaseView: View {
             foreignAmount: foreignValue,
             description: description
         )
-        
+
         // ViewModelの更新メソッドを呼び出す
         viewModel.updatePurchaseRecord(updatedRecord, inTripWithId: trip.id)
-        
+
         // 画面を閉じる
         presentationMode.wrappedValue.dismiss()
     }

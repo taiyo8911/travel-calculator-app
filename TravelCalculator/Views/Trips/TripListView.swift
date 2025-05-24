@@ -5,7 +5,6 @@
 //  Created by Taiyo KOSHIBA on 2025/04/05.
 //
 
-
 import SwiftUI
 
 // 旅行リスト全体のビュー
@@ -18,21 +17,130 @@ struct TripListView: View {
     }
 
     var body: some View {
-        List {
-            ForEach(sortedTrips) { trip in
-                NavigationLink(value: trip) {
-                    TripRow(trip: trip)
+        VStack(spacing: 0) {
+            // カスタムヘッダー
+            customHeader
+
+            // 旅行リスト
+            List {
+                ForEach(sortedTrips) { trip in
+                    NavigationLink(value: trip) {
+                        TripRow(trip: trip)
+                    }
+                }
+                .onDelete { indexSet in
+                    deleteTripAt(indexSet)
                 }
             }
-            .onDelete { indexSet in
-                deleteTripAt(indexSet)
+            .navigationDestination(for: Trip.self) { trip in
+                TripDetailView(trip: trip)
             }
+            .listStyle(InsetGroupedListStyle())
         }
-        .id(UUID()) // 強制的にビューをリフレッシュする
-        .navigationDestination(for: Trip.self) { trip in
-            TripDetailView(trip: trip)
+        .navigationBarHidden(true) // デフォルトのナビゲーションバーを非表示
+    }
+
+    // カスタムヘッダー
+    private var customHeader: some View {
+        VStack(spacing: 16) {
+            // セーフエリア対応
+            Color.clear
+                .frame(height: 0)
+                .background(
+                    GeometryReader { geometry in
+                        Color.clear.preference(
+                            key: SafeAreaPreferenceKey.self,
+                            value: geometry.safeAreaInsets.top
+                        )
+                    }
+                )
+
+            // ロゴとアプリ名
+            HStack(spacing: 12) {
+                // アイコン - 飛行機と地球を組み合わせ
+                // 飛行機
+                Image(systemName: "airplane")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.blue, Color.purple],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .offset(x: 4, y: -2)
+
+                // アプリ名
+                Text("トラベルメモリーズ")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.blue, Color.purple],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+            }
+            .padding(.horizontal)
+
+            // 旅行統計情報
+            statisticsView
+
+            // 区切り線
+            Divider()
+                .background(Color.gray.opacity(0.3))
         }
-        .listStyle(InsetGroupedListStyle())
+        .background(
+            // ヘッダー背景のグラデーション
+            LinearGradient(
+                colors: [
+                    Color(UIColor.systemBackground),
+                    Color(UIColor.systemBackground).opacity(0.95)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+    }
+
+    // 統計情報ビュー
+    private var statisticsView: some View {
+        HStack(spacing: 20) {
+            // 総旅行数
+            StatisticItem(
+                icon: "suitcase.fill",
+                value: "\(sortedTrips.count)",
+                label: "旅行",
+                color: .blue
+            )
+
+            // 進行中の旅行
+            StatisticItem(
+                icon: "location.fill",
+                value: "\(activeTripsCount)",
+                label: "進行中",
+                color: .green
+            )
+
+            // 予定の旅行
+            StatisticItem(
+                icon: "calendar",
+                value: "\(upcomingTripsCount)",
+                label: "予定",
+                color: .orange
+            )
+        }
+        .padding(.horizontal)
+    }
+
+    // 計算プロパティ
+    private var activeTripsCount: Int {
+        sortedTrips.filter { isTripActive($0) }.count
+    }
+
+    private var upcomingTripsCount: Int {
+        sortedTrips.filter { isTripUpcoming($0) }.count
     }
 
     private func deleteTripAt(_ indexSet: IndexSet) {
@@ -40,9 +148,53 @@ struct TripListView: View {
             viewModel.deleteTrip(withId: sortedTrips[index].id)
         }
     }
+
+    // ヘルパーメソッド
+    private func isTripActive(_ trip: Trip) -> Bool {
+        let currentDate = Date()
+        return currentDate >= trip.startDate && currentDate <= trip.endDate
+    }
+
+    private func isTripUpcoming(_ trip: Trip) -> Bool {
+        return Date() < trip.startDate
+    }
 }
 
-// それぞれの行を表示するビュー
+// 統計アイテムコンポーネント
+struct StatisticItem: View {
+    let icon: String
+    let value: String
+    let label: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundColor(color)
+
+            Text(value)
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundColor(.primary)
+
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// SafeAreaの取得用
+struct SafeAreaPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+// それぞれの行を表示するビュー（既存のTripRowは変更なし）
 struct TripRow: View {
     let trip: Trip
 
@@ -137,8 +289,6 @@ struct TripRow: View {
     }
 }
 
-
-
 #Preview {
     let viewModel = TravelCalculatorViewModel()
     // テストデータ
@@ -176,6 +326,8 @@ struct TripRow: View {
             purchaseRecords: []
         )
     ]
-    return TripListView()
-        .environmentObject(viewModel)
+    return NavigationView {
+        TripListView()
+            .environmentObject(viewModel)
+    }
 }
