@@ -235,14 +235,6 @@ struct TripRow: View {
                     .font(.subheadline)
 
             }
-
-            // 通貨レートと支出額
-            HStack {
-                // 1通貨あたりのレートを表示
-                Text("1 \(trip.currency.code) = \(CurrencyFormatter.formatRate(trip.weightedAverageRate))円")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
         }
         .padding(.vertical, 6)
     }
