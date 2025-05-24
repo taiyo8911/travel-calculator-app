@@ -11,6 +11,7 @@ import Foundation
 struct Trip: Codable, Identifiable, Hashable {
     var id = UUID()
     var name: String // 旅行名（例：「タイ旅行2023」）
+    var country: String // 国名（例：「タイ」）
     var currency: Currency // 旅行先通貨
     var startDate: Date // 旅行開始日
     var endDate: Date // 旅行終了日
@@ -18,9 +19,10 @@ struct Trip: Codable, Identifiable, Hashable {
     var purchaseRecords: [PurchaseRecord] = [] // この旅行での買い物記録
 
     // イニシャライザ
-    init(id: UUID = UUID(), name: String, currency: Currency, startDate: Date = Date(), endDate: Date = Date().addingTimeInterval(60*60*24*7), exchangeRecords: [ExchangeRecord] = [], purchaseRecords: [PurchaseRecord] = []) {
+    init(id: UUID = UUID(), name: String, country: String, currency: Currency, startDate: Date = Date(), endDate: Date = Date().addingTimeInterval(60*60*24*7), exchangeRecords: [ExchangeRecord] = [], purchaseRecords: [PurchaseRecord] = []) {
         self.id = id
         self.name = name
+        self.country = country
         self.currency = currency
         self.startDate = startDate
         self.endDate = endDate
@@ -74,4 +76,3 @@ struct Trip: Codable, Identifiable, Hashable {
         return lhs.id == rhs.id
     }
 }
-

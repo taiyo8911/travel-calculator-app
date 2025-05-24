@@ -131,8 +131,8 @@ struct EditPurchaseView: View {
     // サンプルのCurrency
     let currency = Currency(code: "USD", name: "US Dollar")
 
-    // サンプルのTrip - currency引数を追加
-    let trip = Trip(name: "アメリカ旅行", currency: currency)
+    // サンプルのTrip - country引数を追加
+    let trip = Trip(name: "アメリカ旅行", country: "アメリカ", currency: currency)
 
     // サンプルの買い物記録
     let purchase = PurchaseRecord(

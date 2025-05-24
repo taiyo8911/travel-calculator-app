@@ -155,9 +155,10 @@ struct AddExchangeView_Previews: PreviewProvider {
         let viewModel = TravelCalculatorViewModel()
         let trip = Trip(
             name: "タイ旅行",
+            country: "タイ",
             currency: Currency(code: "THB", name: "タイバーツ")
         )
-        
+
         return AddExchangeView(trip: trip)
             .environmentObject(viewModel)
     }

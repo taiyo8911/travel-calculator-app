@@ -14,6 +14,7 @@ struct AddTripView: View {
 
     // 新しい旅行の詳細を管理するプライベートステート
     @State private var tripName = ""
+    @State private var country = ""
     @State private var selectedCurrencyIndex = 0
     @State private var startDate = Date()
     @State private var endDate = Date().addingTimeInterval(60*60*24*7) // デフォルトは1週間後
@@ -21,6 +22,13 @@ struct AddTripView: View {
     // 日付バリデーション
     private var isDateRangeValid: Bool {
         return startDate <= endDate
+    }
+
+    // フォームバリデーション
+    private var isFormValid: Bool {
+        return !tripName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+               !country.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+               isDateRangeValid
     }
 
     // 利用可能な通貨リスト
@@ -32,6 +40,12 @@ struct AddTripView: View {
                 // 旅行名入力セクション
                 Section(header: Text("旅行名")) {
                     TextField("旅行名を入力", text: $tripName)
+                        .font(.headline)
+                }
+
+                // 国名入力セクション
+                Section(header: Text("国名")) {
+                    TextField("国名を入力", text: $country)
                         .font(.headline)
                 }
 
@@ -86,16 +100,17 @@ struct AddTripView: View {
             trailing: Button("保存") {
                 createTrip()
             }
-                .disabled(tripName.isEmpty || !isDateRangeValid)
+                .disabled(!isFormValid)
         )
     }
 
     // 旅行を作成するプライベートメソッド
     private func createTrip() {
-        guard !tripName.isEmpty && isDateRangeValid else { return }
+        guard isFormValid else { return }
 
         let newTrip = Trip(
-            name: tripName,
+            name: tripName.trimmingCharacters(in: .whitespacesAndNewlines),
+            country: country.trimmingCharacters(in: .whitespacesAndNewlines),
             currency: availableCurrencies[selectedCurrencyIndex],
             startDate: startDate,
             endDate: endDate
@@ -112,5 +127,3 @@ struct AddTripView: View {
             .environmentObject(TravelCalculatorViewModel())
     }
 }
-
-

@@ -435,6 +435,7 @@ struct TripDetailView: View {
         TripDetailView(
             trip: Trip(
                 name: "タイ旅行",
+                country: "タイ",
                 currency: Currency(code: "THB", name: "タイバーツ"),
                 startDate: Date(),
                 endDate: Date().addingTimeInterval(60*60*24*5),

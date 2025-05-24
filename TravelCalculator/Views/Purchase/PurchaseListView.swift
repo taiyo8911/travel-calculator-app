@@ -260,6 +260,7 @@ struct PurchaseListView_Previews: PreviewProvider {
         let viewModel = TravelCalculatorViewModel()
         let trip = Trip(
             name: "タイ旅行",
+            country: "タイ",
             currency: Currency(code: "THB", name: "タイバーツ"),
             exchangeRecords: [
                 ExchangeRecord(date: Date(), jpyAmount: 10000, displayRate: 3.8, foreignAmount: 2500)

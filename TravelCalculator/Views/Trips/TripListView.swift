@@ -194,20 +194,26 @@ struct SafeAreaPreferenceKey: PreferenceKey {
     }
 }
 
-// それぞれの行を表示するビュー（既存のTripRowは変更なし）
+// それぞれの行を表示するビュー（国名表示機能を追加）
 struct TripRow: View {
     let trip: Trip
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // 行の上部 - 旅行名と状態
+            // 行の上部 - 旅行名、国名と状態
             HStack {
-                HStack {
+                HStack(spacing: 8) {
                     Text(flagEmoji(for: trip.currency.code))
                         .font(.title2)
 
-                    Text(trip.name)
-                        .font(.headline)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(trip.name)
+                            .font(.headline)
+
+                        Text(trip.country)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
                 }
 
                 Spacer()
@@ -233,7 +239,7 @@ struct TripRow: View {
             // 通貨レートと支出額
             HStack {
                 // 1通貨あたりのレートを表示
-                Text("1 \(trip.currency.name) = \(CurrencyFormatter.formatJPY(trip.weightedAverageRate))")
+                Text("1 \(trip.currency.code) = \(CurrencyFormatter.formatRate(trip.weightedAverageRate))円")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -295,6 +301,7 @@ struct TripRow: View {
     viewModel.trips = [
         Trip(
             name: "タイ旅行",
+            country: "タイ",
             currency: Currency(code: "THB", name: "タイバーツ"),
             startDate: Date(),
             endDate: Date().addingTimeInterval(60*60*24*5),
@@ -307,6 +314,7 @@ struct TripRow: View {
         ),
         Trip(
             name: "アメリカ旅行",
+            country: "アメリカ",
             currency: Currency(code: "USD", name: "アメリカドル"),
             startDate: Date().addingTimeInterval(60*60*24*30), // 30日後
             endDate: Date().addingTimeInterval(60*60*24*40), // 40日後
@@ -319,6 +327,7 @@ struct TripRow: View {
         ),
         Trip(
             name: "ヨーロッパ旅行",
+            country: "フランス",
             currency: Currency(code: "EUR", name: "ユーロ"),
             startDate: Date().addingTimeInterval(-60*60*24*10), // 10日前
             endDate: Date().addingTimeInterval(-60*60*24*3), // 3日前
