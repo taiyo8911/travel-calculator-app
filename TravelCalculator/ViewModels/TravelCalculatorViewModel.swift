@@ -68,9 +68,9 @@ class TravelCalculatorViewModel: ObservableObject {
     // 買い物記録を特定の旅行に追加
     func addPurchaseRecord(_ record: PurchaseRecord, toTripWithId tripId: UUID) {
         if let index = trips.firstIndex(where: { $0.id == tripId }) {
-                trips[index].purchaseRecords.append(record)
-                saveData()
-            }
+            trips[index].purchaseRecords.append(record)
+            saveData()
+        }
     }
 
     // 両替記録を削除
@@ -170,5 +170,20 @@ class TravelCalculatorViewModel: ObservableObject {
         } catch {
             print("PDF保存エラー: \(error)")
         }
+    }
+
+    // 旅行情報を更新
+    func updateTrip(_ updatedTrip: Trip) {
+        objectWillChange.send()
+
+        trips = trips.map { trip in
+            if trip.id == updatedTrip.id {
+                return updatedTrip
+            } else {
+                return trip
+            }
+        }
+
+        saveData()
     }
 }

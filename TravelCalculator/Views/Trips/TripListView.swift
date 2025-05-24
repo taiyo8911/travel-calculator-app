@@ -11,6 +11,11 @@ import SwiftUI
 struct TripListView: View {
     @EnvironmentObject private var viewModel: TravelCalculatorViewModel
 
+    // 編集シート表示用ステート
+    @State private var editingTrip: Trip? = nil
+    // リフレッシュキー（編集後に強制更新するため）
+    @State private var refreshKey = UUID()
+
     // 旅行のリストをIDでソート
     private var sortedTrips: [Trip] {
         viewModel.trips.sorted(by: { $0.id.uuidString > $1.id.uuidString })
@@ -24,20 +29,44 @@ struct TripListView: View {
             // 旅行リスト
             List {
                 ForEach(sortedTrips) { trip in
-                    NavigationLink(value: trip) {
-                        TripRow(trip: trip)
+                    // 常に最新のtrip情報を取得
+                    let currentTrip = viewModel.trips.first(where: { $0.id == trip.id }) ?? trip
+
+                    NavigationLink(value: currentTrip) {
+                        TripRow(trip: currentTrip)
+                    }
+                    .contextMenu {
+                        Button(action: {
+                            editingTrip = currentTrip
+                        }) {
+                            Label("編集", systemImage: "pencil")
+                        }
+
+                        Button(role: .destructive, action: {
+                            viewModel.deleteTrip(withId: trip.id)
+                        }) {
+                            Label("削除", systemImage: "trash")
+                        }
                     }
                 }
                 .onDelete { indexSet in
                     deleteTripAt(indexSet)
                 }
             }
+            .id(refreshKey) // refreshKeyを使ってリストを強制更新
             .navigationDestination(for: Trip.self) { trip in
                 TripDetailView(trip: trip)
             }
             .listStyle(InsetGroupedListStyle())
         }
         .navigationBarHidden(true) // デフォルトのナビゲーションバーを非表示
+        .sheet(item: $editingTrip) { trip in
+            EditTripView(trip: trip)
+                .onDisappear {
+                    // 編集画面が閉じられた時にリフレッシュキーを更新
+                    refreshKey = UUID()
+                }
+        }
     }
 
     // カスタムヘッダー

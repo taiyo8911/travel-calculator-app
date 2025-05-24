@@ -103,7 +103,7 @@ struct AboutView: View {
     }
 
     private var titleView: some View {
-        Text("Travel Calculator")
+        Text("トラベルメモリ")
             .font(.largeTitle)
             .fontWeight(.bold)
     }
@@ -115,7 +115,7 @@ struct AboutView: View {
     }
 
     private var descriptionView: some View {
-        Text("海外旅行中の両替と買い物の記録を簡単に管理するアプリです。")
+        Text("海外旅行のお金を管理するアプリです。")
             .multilineTextAlignment(.center)
             .padding(.horizontal)
     }
