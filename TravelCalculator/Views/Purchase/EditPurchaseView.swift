@@ -101,6 +101,7 @@ struct EditPurchaseView: View {
                 .disabled(!isFormValid)
             )
         }
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     }
 
     private func savePurchaseRecord() {

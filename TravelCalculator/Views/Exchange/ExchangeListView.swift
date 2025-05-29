@@ -138,6 +138,7 @@ struct ExchangeListView: View {
         .sheet(item: $selectedExchange) { exchange in
             EditExchangeView(trip: currentTrip, exchange: exchange)
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
     }
 
     // 計算プロパティ

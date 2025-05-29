@@ -176,6 +176,7 @@ struct PurchaseListView: View {
         .sheet(item: $selectedPurchase) { purchase in
             EditPurchaseView(trip: currentTrip, purchase: purchase)
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     // 計算プロパティ

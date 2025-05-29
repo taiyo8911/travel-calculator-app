@@ -124,6 +124,7 @@ struct EditTripView: View {
                 .disabled(!isFormValid)
             )
         }
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
     
     // 旅行情報を更新するメソッド

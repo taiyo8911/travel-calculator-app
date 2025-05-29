@@ -102,6 +102,7 @@ struct AddTripView: View {
             }
                 .disabled(!isFormValid)
         )
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     // 旅行を作成するプライベートメソッド

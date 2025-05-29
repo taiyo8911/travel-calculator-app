@@ -105,6 +105,7 @@ struct EditExchangeView: View {
                 .disabled(!isFormValid)
             )
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     private func saveExchangeRecord() {

@@ -67,6 +67,7 @@ struct TripListView: View {
                     refreshKey = UUID()
                 }
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     // カスタムヘッダー
@@ -100,7 +101,7 @@ struct TripListView: View {
                     .offset(x: 4, y: -2)
 
                 // アプリ名
-                Text("トラベルメモリーズ")
+                Text("トラベルマネージャー")
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundStyle(

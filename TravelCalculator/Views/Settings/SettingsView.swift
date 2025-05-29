@@ -26,6 +26,7 @@ struct SettingsView: View {
         .sheet(isPresented: $showAboutSheet) {
             AboutView()
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     private var dataManagementSection: some View {
@@ -83,7 +84,6 @@ struct AboutView: View {
         NavigationStack {
             VStack(spacing: 20) {
                 iconView
-                titleView
                 dividerView
                 descriptionView
                 Spacer()
@@ -93,6 +93,7 @@ struct AboutView: View {
                 dismiss()
             })
             .navigationTitle("このアプリについて")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 
@@ -102,12 +103,6 @@ struct AboutView: View {
             .foregroundColor(.blue)
     }
 
-    private var titleView: some View {
-        Text("トラベルメモリ")
-            .font(.largeTitle)
-            .fontWeight(.bold)
-    }
-
     private var dividerView: some View {
         Divider()
             .padding(.horizontal, 50)
@@ -115,9 +110,14 @@ struct AboutView: View {
     }
 
     private var descriptionView: some View {
-        Text("海外旅行のお金を管理するアプリです。")
-            .multilineTextAlignment(.center)
-            .padding(.horizontal)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("海外旅行のお金を管理するアプリです。")
+            Text("両替記録や買い物履歴を簡単に記録できます。")
+            Text("データは旅行ごとにPDFで出力できます。")
+            Text("")
+            Text("※アプリを削除するとデータも削除されてしまいます。")
+                .fontWeight(.bold)
+        }
     }
 }
 

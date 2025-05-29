@@ -78,6 +78,7 @@ struct AddPurchaseView: View {
                 .disabled(!isFormValid)
             )
         }
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     }
 
     private var isFormValid: Bool {

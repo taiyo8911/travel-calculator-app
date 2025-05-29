@@ -94,6 +94,7 @@ struct AddExchangeView: View {
                 .disabled(!isFormValid)
             )
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxLarge)
     }
 
     private var isFormValid: Bool {

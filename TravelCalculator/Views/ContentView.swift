@@ -13,7 +13,6 @@ struct ContentView: View {
     var body: some View {
         NavigationStack(path: $viewModel.navigationPath) {
             TripListView()
-                .navigationTitle("旅行リスト")
                 .navigationDestination(for: UUID.self) { tripId in
                     if let trip = viewModel.trips.first(where: { $0.id == tripId }) {
                         TripDetailView(trip: trip)
@@ -95,6 +94,7 @@ struct ContentView: View {
                 .padding()
             }
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }
 

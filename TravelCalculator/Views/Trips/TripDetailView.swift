@@ -61,6 +61,7 @@ struct TripDetailView: View {
         .onReceive(viewModel.$trips) { _ in
             // ViewModelのtripsが更新されたときに強制的にビューを更新
         }
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
 
     // MARK: - 旅行ヘッダーセクション
