@@ -199,15 +199,25 @@ class PDFGenerator {
             let maxRate = rates.max() ?? 0
             let minRate = rates.min() ?? 0
 
-            // 最高両替レート
-            "最高両替レート:".draw(at: CGPoint(x: 70, y: yPosition), withAttributes: itemAttributes)
+            // 最高実質レート
+            "最高実質レート:".draw(at: CGPoint(x: 70, y: yPosition), withAttributes: itemAttributes)
             "1\(trip.currency.code) = \(CurrencyFormatter.formatRate(maxRate))円".draw(at: CGPoint(x: 200, y: yPosition), withAttributes: valueAttributes)
             yPosition += 20
 
-            // 最低両替レート
-            "最低両替レート:".draw(at: CGPoint(x: 70, y: yPosition), withAttributes: itemAttributes)
+            // 最低実質レート
+            "最低実質レート:".draw(at: CGPoint(x: 70, y: yPosition), withAttributes: itemAttributes)
             "1\(trip.currency.code) = \(CurrencyFormatter.formatRate(minRate))円".draw(at: CGPoint(x: 200, y: yPosition), withAttributes: valueAttributes)
             yPosition += 20
+
+            // 入力方式の内訳
+            let inputTypeBreakdown = Dictionary(grouping: trip.exchangeRecords) { $0.rateInputType ?? .legacy }
+            "入力方式の内訳:".draw(at: CGPoint(x: 70, y: yPosition), withAttributes: itemAttributes)
+            yPosition += 15
+
+            for (inputType, records) in inputTypeBreakdown.sorted(by: { $0.value.count > $1.value.count }) {
+                "  \(inputType.displayName): \(records.count)回".draw(at: CGPoint(x: 90, y: yPosition), withAttributes: itemAttributes)
+                yPosition += 15
+            }
         }
 
         return yPosition
@@ -244,11 +254,10 @@ class PDFGenerator {
         ]
 
         "日付".draw(at: CGPoint(x: 50, y: yPosition), withAttributes: headerAttributes)
-        "日本円".draw(at: CGPoint(x: 120, y: yPosition), withAttributes: headerAttributes)
-        "表示レート".draw(at: CGPoint(x: 200, y: yPosition), withAttributes: headerAttributes)
+        "入力方式".draw(at: CGPoint(x: 120, y: yPosition), withAttributes: headerAttributes)
+        "日本円".draw(at: CGPoint(x: 200, y: yPosition), withAttributes: headerAttributes)
         "外貨金額".draw(at: CGPoint(x: 280, y: yPosition), withAttributes: headerAttributes)
         "実質レート".draw(at: CGPoint(x: 360, y: yPosition), withAttributes: headerAttributes)
-        "手数料率".draw(at: CGPoint(x: 440, y: yPosition), withAttributes: headerAttributes)
         yPosition += 20
 
         // データ行
@@ -263,11 +272,10 @@ class PDFGenerator {
 
         for record in trip.exchangeRecords.sorted(by: { $0.date > $1.date }) {
             dateFormatter.string(from: record.date).draw(at: CGPoint(x: 50, y: yPosition), withAttributes: rowAttributes)
-            String(format: "%.0f円", record.jpyAmount).draw(at: CGPoint(x: 120, y: yPosition), withAttributes: rowAttributes)
-            String(format: "%.2f", record.displayRate).draw(at: CGPoint(x: 200, y: yPosition), withAttributes: rowAttributes)
+            (record.rateInputType ?? .legacy).displayName.draw(at: CGPoint(x: 120, y: yPosition), withAttributes: rowAttributes)
+            String(format: "%.0f円", record.jpyAmount).draw(at: CGPoint(x: 200, y: yPosition), withAttributes: rowAttributes)
             String(format: "%.2f", record.foreignAmount).draw(at: CGPoint(x: 280, y: yPosition), withAttributes: rowAttributes)
-            String(format: "%.2f", record.actualRate).draw(at: CGPoint(x: 360, y: yPosition), withAttributes: rowAttributes)
-            String(format: "%.1f%%", record.feePercentage).draw(at: CGPoint(x: 440, y: yPosition), withAttributes: rowAttributes)
+            String(format: "%.3f", record.actualRate).draw(at: CGPoint(x: 360, y: yPosition), withAttributes: rowAttributes)
             yPosition += 15
         }
 
