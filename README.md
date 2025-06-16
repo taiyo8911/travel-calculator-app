@@ -153,7 +153,7 @@ MVVMアーキテクチャに基づいて設計され、SwiftUIを使用して構
 * **フレームワーク**: SwiftUI 4.0+
 * **アーキテクチャ**: MVVM（Model-View-ViewModel）
 * **最低動作環境**: iOS 16.6以上
-* **対応デバイス**: iPhone / iPad
+* **対応デバイス**: iPhone
 
 ### 主要な実装特徴
 * **リアルタイム計算**: 入力中にリアルタイムで手数料や換算額を表示
@@ -167,9 +167,7 @@ MVVMアーキテクチャに基づいて設計され、SwiftUIを使用して構
 
 ```
 TravelCalculator/
-├── App/
-│   ├── TravelCalculatorApp.swift      // アプリのエントリーポイント
-│   └── ContentView.swift              // メインコンテンツビュー
+├── TravelCalculatorApp.swift          // アプリのエントリーポイント
 │
 ├── Models/
 │   ├── Trip.swift                     // 旅行モデル
@@ -181,6 +179,8 @@ TravelCalculator/
 │   └── TravelCalculatorViewModel.swift // メインビューモデル
 │
 ├── Views/
+│   ├── ContentView.swift              // メインコンテンツビュー
+│   │
 │   ├── Trips/
 │   │   ├── TripListView.swift         // 旅行一覧画面（カスタムヘッダー付き）
 │   │   ├── AddTripView.swift          // 旅行追加画面
@@ -197,7 +197,7 @@ TravelCalculator/
 │   │   ├── AddPurchaseView.swift      // 買い物追加画面
 │   │   └── EditPurchaseView.swift     // 買い物編集画面
 │   │
-│   ├── Components/
+│   ├── Componets/
 │   │   ├── SummaryCard.swift          // 集計カードコンポーネント
 │   │   ├── ExchangeCard.swift         // 両替カードコンポーネント（入力方式表示）
 │   │   └── PurchaseCard.swift         // 買い物カードコンポーネント
@@ -212,10 +212,11 @@ TravelCalculator/
 │   ├── RateCalculationUtility.swift   // レート計算・バリデーションユーティリティ
 │   └── ValidationConstants.swift      // バリデーション定数・制限値
 │
-└── Assets/
-    ├── Assets.xcassets/               // アプリアイコン・カラーセット
-    ├── Info.plist                     // アプリ設定
-    └── TravelCalculator.entitlements  // アプリ権限設定
+├── Assets.xcassets/                   // アプリアイコン・カラーセット
+├── Preview Content/
+│   └── Preview Assets.xcassets/       // プレビュー用アセット
+├── Info.plist                         // アプリ設定
+└── TravelCalculator.entitlements      // アプリ権限設定
 ```
 
 ## バリデーション・制限値
