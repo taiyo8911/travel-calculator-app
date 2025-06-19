@@ -23,8 +23,30 @@ struct EditExchangeView: View {
     @State private var rateValue1: String
     @State private var rateValue2: String
 
-    // 計算結果のプレビュー用変数
-    @State private var calculatedDisplayRate: Double = 0
+    // バリデーション状態
+    @State private var showValidationError: Bool = false
+
+    // フォーム状態を計算プロパティとして定義
+    private var formState: CommonFormValidation.ExchangeFormState {
+        CommonFormValidation.ExchangeFormState(
+            jpyAmount: jpyAmount,
+            foreignAmount: foreignAmount,
+            rateInputType: selectedRateType,
+            rateValue1: rateValue1,
+            rateValue2: rateValue2,
+            currencyCode: trip.currency.code
+        )
+    }
+
+    // フォームの有効性
+    private var isFormValid: Bool {
+        return formState.isValid
+    }
+
+    // 計算プレビューデータ
+    private var calculationPreview: ExchangeCalculationPreview? {
+        return formState.getCalculationPreview()
+    }
 
     // イニシャライザ
     init(trip: Trip, exchange: ExchangeRecord) {
@@ -66,6 +88,11 @@ struct EditExchangeView: View {
                 basicInfoSection
                 rateInputSection
                 calculationPreviewSection
+                migrationInfoSection
+
+                if showValidationError, let errorMessage = formState.errorMessage {
+                    validationErrorSection(errorMessage)
+                }
             }
             .navigationBarTitle("両替履歴を編集", displayMode: .inline)
             .navigationBarItems(
@@ -77,12 +104,13 @@ struct EditExchangeView: View {
                 }
                 .disabled(!isFormValid)
             )
-            .onAppear {
-                recalculateRates()
+            .onChange(of: selectedRateType) { _ in
+                showValidationError = false
             }
-            .onChange(of: selectedRateType) { _ in recalculateRates() }
-            .onChange(of: rateValue1) { _ in recalculateRates() }
-            .onChange(of: rateValue2) { _ in recalculateRates() }
+            .onChange(of: rateValue1) { _ in updateValidationState() }
+            .onChange(of: rateValue2) { _ in updateValidationState() }
+            .onChange(of: jpyAmount) { _ in updateValidationState() }
+            .onChange(of: foreignAmount) { _ in updateValidationState() }
         }
     }
 
@@ -125,13 +153,11 @@ struct EditExchangeView: View {
             .pickerStyle(SegmentedPickerStyle())
             .padding(.vertical, 4)
 
-            // 既存データの場合の説明
-            if exchange.rateInputType == nil || exchange.rateInputType == .legacy {
-                Text("既存データは従来方式で保存されています。他の方式に変更して保存することもできます。")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.vertical, 2)
-            }
+            // 説明文
+            Text(CommonFormValidation.getInputDescription(for: selectedRateType, currencyCode: trip.currency.code))
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.vertical, 2)
 
             // 選択された方式に応じた入力フィールド
             Group {
@@ -166,15 +192,17 @@ struct EditExchangeView: View {
     }
 
     private var exchangeOfficeInputView: some View {
-        HStack {
-            TextField("円", text: $rateValue1)
+        let placeholders = CommonFormValidation.getPlaceholderTexts(for: .exchangeOffice, currencyCode: trip.currency.code)
+
+        return HStack {
+            TextField(placeholders.value1, text: $rateValue1)
                 .keyboardType(.decimalPad)
                 .frame(width: 80)
 
             Text("円 =")
                 .foregroundColor(.secondary)
 
-            TextField("外貨", text: $rateValue2)
+            TextField(placeholders.value2 ?? "", text: $rateValue2)
                 .keyboardType(.decimalPad)
                 .frame(width: 80)
 
@@ -186,11 +214,13 @@ struct EditExchangeView: View {
     }
 
     private var perYenInputView: some View {
-        HStack {
+        let placeholders = CommonFormValidation.getPlaceholderTexts(for: .perYen, currencyCode: trip.currency.code)
+
+        return HStack {
             Text("1円 =")
                 .foregroundColor(.secondary)
 
-            TextField("レート", text: $rateValue1)
+            TextField(placeholders.value1, text: $rateValue1)
                 .keyboardType(.decimalPad)
                 .frame(width: 100)
 
@@ -202,11 +232,13 @@ struct EditExchangeView: View {
     }
 
     private var perForeignInputView: some View {
-        HStack {
+        let placeholders = CommonFormValidation.getPlaceholderTexts(for: .perForeign, currencyCode: trip.currency.code)
+
+        return HStack {
             Text("1\(trip.currency.code) =")
                 .foregroundColor(.secondary)
 
-            TextField("レート", text: $rateValue1)
+            TextField(placeholders.value1, text: $rateValue1)
                 .keyboardType(.decimalPad)
                 .frame(width: 100)
 
@@ -219,14 +251,14 @@ struct EditExchangeView: View {
 
     private var calculationPreviewSection: some View {
         Group {
-            if calculatedDisplayRate > 0 {
+            if let preview = calculationPreview {
                 Section(header: Text("レート確認")) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("表示レート:")
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text(formatDisplayRate())
+                            Text(preview.displayRateString)
                                 .fontWeight(.medium)
                         }
 
@@ -236,9 +268,41 @@ struct EditExchangeView: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text("1\(trip.currency.code) = \(String(format: "%.3f", calculatedDisplayRate))円")
+                            Text("1\(trip.currency.code) = \(CommonFormValidation.formatRateForDisplay(preview.displayRate))円")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
+                        }
+
+                        // 実質レートと手数料
+                        HStack {
+                            Text("実質レート:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("1\(trip.currency.code) = \(CommonFormValidation.formatRateForDisplay(preview.actualRate))円")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        HStack {
+                            Text("手数料:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("\(String(format: "%.2f", preview.feePercentage))%")
+                                .font(.caption)
+                                .foregroundColor(preview.isHighFee ? .red : .secondary)
+                        }
+
+                        if preview.isHighFee {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.caption)
+                                Text("手数料が3%を超えています")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
                         }
 
                         // 他の形式での参考表示
@@ -248,13 +312,41 @@ struct EditExchangeView: View {
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 Spacer()
-                                Text("\(String(format: "%.3f", calculatedDisplayRate > 0 ? 1.0/calculatedDisplayRate : 0))\(trip.currency.code)")
+                                Text("\(String(format: "%.3f", preview.displayRate > 0 ? 1.0/preview.displayRate : 0))\(trip.currency.code)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private var migrationInfoSection: some View {
+        Group {
+            if exchange.rateInputType == nil || exchange.rateInputType == .legacy {
+                Section(footer: Text("既存データは従来方式で保存されています。他の方式に変更して保存することもできます。")) {
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.blue)
+                        Text("データ形式について")
+                            .foregroundColor(.blue)
+                        Spacer()
+                    }
+                }
+            }
+        }
+    }
+
+    private func validationErrorSection(_ errorMessage: String) -> some View {
+        Section {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.red)
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .font(.caption)
             }
         }
     }
@@ -272,57 +364,23 @@ struct EditExchangeView: View {
         return types
     }
 
-    private var isFormValid: Bool {
-        let validation = RateCalculationUtility.validateInput(
-            inputType: selectedRateType,
-            value1: rateValue1,
-            value2: rateValue2,
-            jpyAmount: jpyAmount,
-            foreignAmount: foreignAmount,
-            currencyCode: trip.currency.code
-        )
-        return validation.isValid
-    }
-
-    private func isRateInputValid() -> Bool {
-        return RateCalculationUtility.isValidInput(
-            inputType: selectedRateType,
-            value1: rateValue1,
-            value2: rateValue2
-        )
-    }
-
-    private func formatDisplayRate() -> String {
-        switch selectedRateType {
-        case .legacy:
-            return "1\(trip.currency.code) = \(rateValue1)円"
-        case .exchangeOffice:
-            return "\(rateValue1)円 = \(rateValue2)\(trip.currency.code)"
-        case .perYen:
-            return "1円 = \(rateValue1)\(trip.currency.code)"
-        case .perForeign:
-            return "1\(trip.currency.code) = \(rateValue1)円"
+    private func updateValidationState() {
+        // 入力中はバリデーションエラーを隠す
+        if showValidationError {
+            showValidationError = false
         }
-    }
-
-    private func recalculateRates() {
-        guard isRateInputValid() else {
-            calculatedDisplayRate = 0
-            return
-        }
-
-        // 共通ユーティリティを使用してレートを計算
-        calculatedDisplayRate = RateCalculationUtility.calculateDisplayRate(
-            inputType: selectedRateType,
-            value1: Double(rateValue1) ?? 0,
-            value2: Double(rateValue2)
-        )
     }
 
     private func saveExchangeRecord() {
+        // 最終バリデーション
+        if !isFormValid {
+            showValidationError = true
+            return
+        }
+
         guard let jpyValue = Double(jpyAmount),
-              let foreignValue = Double(foreignAmount),
-              isRateInputValid() else {
+              let foreignValue = Double(foreignAmount) else {
+            showValidationError = true
             return
         }
 

@@ -32,7 +32,7 @@ struct ExchangeRecord: Codable, Identifiable, Equatable {
     var id = UUID()
     var date: Date
     var jpyAmount: Double // 両替した日本円金額
-    var displayRate: Double // 両替所が表示していたレート（既存互換性のため保持）
+    var displayRate: Double // 両替所が表示していたレート（計算で求められる）
     var foreignAmount: Double // 受け取った外貨金額
 
     // 新規フィールド - レート入力方式と値
@@ -45,11 +45,13 @@ struct ExchangeRecord: Codable, Identifiable, Equatable {
         self.id = id
         self.date = date
         self.jpyAmount = jpyAmount
-        self.displayRate = displayRate
         self.foreignAmount = foreignAmount
         self.rateInputType = .legacy
         self.inputValue1 = displayRate
         self.inputValue2 = nil
+
+        // displayRateは渡された値をそのまま使用（既存データ互換性）
+        self.displayRate = displayRate
     }
 
     // イニシャライザ - 新規入力用
@@ -60,6 +62,7 @@ struct ExchangeRecord: Codable, Identifiable, Equatable {
          rateInputType: RateInputType,
          inputValue1: Double,
          inputValue2: Double? = nil) {
+
         self.id = id
         self.date = date
         self.jpyAmount = jpyAmount
@@ -68,7 +71,7 @@ struct ExchangeRecord: Codable, Identifiable, Equatable {
         self.inputValue1 = inputValue1
         self.inputValue2 = inputValue2
 
-        // 共通ユーティリティを使用してdisplayRateを計算
+        // RateCalculationUtilityを使用してdisplayRateを計算
         self.displayRate = RateCalculationUtility.calculateDisplayRate(
             inputType: rateInputType,
             value1: inputValue1,
@@ -78,39 +81,19 @@ struct ExchangeRecord: Codable, Identifiable, Equatable {
 
     // 計算プロパティ - 実質レート（変更なし）
     var actualRate: Double {
+        guard foreignAmount > 0 else { return 0 }
         return jpyAmount / foreignAmount
     }
 
-    // 計算プロパティ - 手数料率（%）（変更なし）
+    // 計算プロパティ - 手数料率（%）
     var feePercentage: Double {
+        guard displayRate > 0, actualRate > 0 else { return 0 }
         return ((actualRate - displayRate) / displayRate) * 100
     }
 
-    // 計算プロパティ - 手数料が高いかどうか（変更なし）
+    // 計算プロパティ - 手数料が高いかどうか
     var isHighFee: Bool {
         return feePercentage > 3.0 // 3%以上を高手数料とみなす
-    }
-
-    // 入力方式から表示レートを計算するヘルパーメソッド
-    private static func calculateDisplayRate(inputType: RateInputType, value1: Double, value2: Double?) -> Double {
-        switch inputType {
-        case .legacy:
-            return value1 // 既存の値をそのまま使用
-
-        case .exchangeOffice:
-            // 両替所表示: value1円 = value2外貨 → 1外貨 = value1/value2 円
-            guard let value2 = value2, value2 != 0 else { return 0 }
-            return value1 / value2
-
-        case .perYen:
-            // 1円あたり: 1円 = value1外貨 → 1外貨 = 1/value1 円
-            guard value1 != 0 else { return 0 }
-            return 1.0 / value1
-
-        case .perForeign:
-            // 1外貨あたり: 1外貨 = value1円 → そのまま使用
-            return value1
-        }
     }
 
     // 表示用のレート文字列を生成

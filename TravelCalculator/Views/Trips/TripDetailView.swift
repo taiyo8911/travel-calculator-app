@@ -10,137 +10,152 @@ import Combine
 
 struct TripDetailView: View {
     @EnvironmentObject private var viewModel: TravelCalculatorViewModel
-    private let trip: Trip
+    private let tripId: UUID
 
     // シート表示状態
     @State private var showingAddExchangeSheet = false
     @State private var showingAddPurchaseSheet = false
 
-    // 最新のTrip情報を取得
-    private var currentTrip: Trip {
-        viewModel.trips.first(where: { $0.id == trip.id }) ?? trip
-    }
-
-    // データ更新検知用
-    private var dataKey: String {
-        "\(currentTrip.exchangeRecords.count)-\(currentTrip.purchaseRecords.count)-\(currentTrip.weightedAverageRate)"
+    // 最新のTrip情報を取得（計算プロパティとして簡略化）
+    private var currentTrip: Trip? {
+        viewModel.trips.first(where: { $0.id == tripId })
     }
 
     init(trip: Trip) {
-        self.trip = trip
+        self.tripId = trip.id
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                tripHeaderSection
-                summaryCardsSection
-                recentExchangesSection
-                recentPurchasesSection
-                actionButtonsSection
-            }
-            .padding(.vertical)
-        }
-        .id(dataKey) // データの変更を検知してビューを更新
-        .navigationTitle(currentTrip.name)
-        .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { sharePDF() }) {
-                    Image(systemName: "square.and.arrow.up")
-                        .accessibilityLabel("PDF出力")
+        Group {
+            if let trip = currentTrip {
+                ScrollView {
+                    LazyVStack(spacing: 24) {
+                        tripHeaderSection(trip: trip)
+                        summaryCardsSection(trip: trip)
+                        recentExchangesSection(trip: trip)
+                        recentPurchasesSection(trip: trip)
+                        actionButtonsSection(trip: trip)
+                    }
+                    .padding(.vertical)
                 }
+                .navigationTitle(trip.name)
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: { sharePDF(trip: trip) }) {
+                            Image(systemName: "square.and.arrow.up")
+                                .accessibilityLabel("PDF出力")
+                        }
+                    }
+                }
+                .sheet(isPresented: $showingAddExchangeSheet) {
+                    AddExchangeView(trip: trip)
+                }
+                .sheet(isPresented: $showingAddPurchaseSheet) {
+                    AddPurchaseView(trip: trip)
+                }
+            } else {
+                // 旅行が見つからない場合のエラー表示
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 50))
+                        .foregroundColor(.orange)
+
+                    Text("旅行データが見つかりません")
+                        .font(.headline)
+
+                    Text("旅行が削除されたか、データに問題がある可能性があります")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                .padding()
             }
-        }
-        .sheet(isPresented: $showingAddExchangeSheet) {
-            AddExchangeView(trip: currentTrip)
-        }
-        .sheet(isPresented: $showingAddPurchaseSheet) {
-            AddPurchaseView(trip: currentTrip)
-        }
-        .onReceive(viewModel.$trips) { _ in
-            // ViewModelのtripsが更新されたときに強制的にビューを更新
         }
         .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
 
     // MARK: - 旅行ヘッダーセクション
-    private var tripHeaderSection: some View {
-        VStack(spacing: 12) {
-            // 期間と状態
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("旅行期間")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    HStack(spacing: 8) {
-                        Text(formattedDate(currentTrip.startDate))
-                            .font(.headline)
-
-                        Text("〜")
-                            .font(.headline)
+    private func tripHeaderSection(trip: Trip) -> some View {
+        ResponsiveCard {
+            VStack(spacing: 12) {
+                // 期間と状態
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("旅行期間")
+                            .font(.caption)
                             .foregroundColor(.secondary)
 
-                        Text(formattedDate(currentTrip.endDate))
-                            .font(.headline)
+                        HStack(spacing: 8) {
+                            Text(formattedDate(trip.startDate))
+                                .font(.headline)
+
+                            Text("〜")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+
+                            Text(formattedDate(trip.endDate))
+                                .font(.headline)
+                        }
+
+                        Text("\(trip.tripDuration)日間")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
 
-                    Text("\(currentTrip.tripDuration)日間")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Spacer()
+
+                    tripStatusBadge(trip: trip)
                 }
 
-                Spacer()
+                // 通貨情報
+                HStack(spacing: 8) {
+                    Text(flagEmoji(for: "JP"))
+                        .font(.title2)
 
-                tripStatusBadge
+                    Text("JPY")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Image(systemName: "arrow.right")
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 4)
+
+                    Text(flagEmoji(for: trip.currency.code))
+                        .font(.title2)
+
+                    Text(trip.currency.code)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text("(\(trip.currency.name))")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
             }
-            .padding(.horizontal)
-
-            // 通貨情報
-            HStack(spacing: 8) {
-                Text(flagEmoji(for: "JP"))
-                    .font(.title2)
-
-                Text("JPY")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                Image(systemName: "arrow.right")
-                    .foregroundColor(.blue)
-                    .padding(.horizontal, 4)
-
-                Text(flagEmoji(for: currentTrip.currency.code))
-                    .font(.title2)
-
-                Text(currentTrip.currency.code)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                Text("(\(currentTrip.currency.name))")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal)
         }
     }
 
     // MARK: - サマリーカードセクション
-    private var summaryCardsSection: some View {
-        VStack(spacing: 16) {
+    private func summaryCardsSection(trip: Trip) -> some View {
+        LazyVGrid(columns: [
+            GridItem(.flexible(), spacing: 16),
+            GridItem(.flexible(), spacing: 16)
+        ], spacing: 16) {
             // 平均レートカード
             SummaryCard(
                 title: "平均レート",
-                value: currentTrip.weightedAverageRate > 0 ?
-                "1\(currentTrip.currency.code) = \(CurrencyFormatter.formatRate(currentTrip.weightedAverageRate))円" : "両替記録がありません",
+                value: trip.weightedAverageRate > 0 ?
+                "1\(trip.currency.code) = \(CurrencyFormatter.formatRate(trip.weightedAverageRate))円" : "両替記録がありません",
                 icon: "arrow.left.arrow.right.circle.fill",
-                color: currentTrip.weightedAverageRate > 0 ? .blue : .orange
+                color: trip.weightedAverageRate > 0 ? .blue : .orange
             )
 
             // 合計両替額カード
             SummaryCard(
                 title: "合計両替額",
-                value: CurrencyFormatter.formatJPY(totalExchangeAmount),
+                value: CurrencyFormatter.formatJPY(trip.totalExchangeJPYAmount),
                 icon: "yensign.circle.fill",
                 color: .orange
             )
@@ -148,24 +163,25 @@ struct TripDetailView: View {
             // 合計支出額カード
             SummaryCard(
                 title: "合計支出額",
-                value: currentTrip.weightedAverageRate > 0 ?
-                CurrencyFormatter.formatJPY(currentTrip.totalExpenseInJPY) : "計算不可",
+                value: trip.weightedAverageRate > 0 ?
+                CurrencyFormatter.formatJPY(trip.totalExpenseInJPY) : "計算不可",
                 icon: "cart.circle.fill",
-                color: currentTrip.weightedAverageRate > 0 ? .green : .orange
+                color: trip.weightedAverageRate > 0 ? .green : .orange
             )
 
             // 残り外貨カード
             SummaryCard(
                 title: "残り外貨",
-                value: remainingForeignText,
+                value: remainingForeignText(trip: trip),
                 icon: "dollarsign.circle.fill",
                 color: .purple
             )
         }
+        .padding(.horizontal)
     }
 
     // MARK: - 最近の両替セクション
-    private var recentExchangesSection: some View {
+    private func recentExchangesSection(trip: Trip) -> some View {
         VStack(spacing: 12) {
             HStack {
                 HStack(spacing: 8) {
@@ -175,8 +191,8 @@ struct TripDetailView: View {
                     Text("最近の両替")
                         .font(.headline)
 
-                    if !currentTrip.exchangeRecords.isEmpty {
-                        Text("(\(currentTrip.exchangeRecords.count)件)")
+                    if !trip.exchangeRecords.isEmpty {
+                        Text("(\(trip.exchangeRecords.count)件)")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -184,8 +200,8 @@ struct TripDetailView: View {
 
                 Spacer()
 
-                if !currentTrip.exchangeRecords.isEmpty {
-                    NavigationLink(destination: ExchangeListView(trip: currentTrip)) {
+                if !trip.exchangeRecords.isEmpty {
+                    NavigationLink(destination: ExchangeListView(trip: trip)) {
                         HStack(spacing: 4) {
                             Text("すべて見る")
                                 .font(.subheadline)
@@ -198,17 +214,19 @@ struct TripDetailView: View {
             }
             .padding(.horizontal)
 
-            if currentTrip.exchangeRecords.isEmpty {
-                emptyStateView(
+            if trip.exchangeRecords.isEmpty {
+                EmptyStateView(
                     icon: "arrow.left.arrow.right.circle",
                     title: "両替記録がありません",
-                    description: "最初の両替を記録しましょう"
+                    description: "最初の両替を記録しましょう",
+                    actionTitle: "両替を追加",
+                    action: { showingAddExchangeSheet = true }
                 )
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(currentTrip.recentExchangeRecords) { exchange in
-                            ExchangeCard(exchange: exchange, currency: currentTrip.currency)
+                    LazyHStack(spacing: 12) {
+                        ForEach(trip.recentExchangeRecords) { exchange in
+                            ResponsiveExchangeCard(exchange: exchange, currency: trip.currency)
                         }
                     }
                     .padding(.horizontal)
@@ -218,7 +236,7 @@ struct TripDetailView: View {
     }
 
     // MARK: - 最近の買い物セクション
-    private var recentPurchasesSection: some View {
+    private func recentPurchasesSection(trip: Trip) -> some View {
         VStack(spacing: 12) {
             HStack {
                 HStack(spacing: 8) {
@@ -228,8 +246,8 @@ struct TripDetailView: View {
                     Text("最近の買い物")
                         .font(.headline)
 
-                    if !currentTrip.purchaseRecords.isEmpty {
-                        Text("(\(currentTrip.purchaseRecords.count)件)")
+                    if !trip.purchaseRecords.isEmpty {
+                        Text("(\(trip.purchaseRecords.count)件)")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -237,8 +255,8 @@ struct TripDetailView: View {
 
                 Spacer()
 
-                if !currentTrip.purchaseRecords.isEmpty {
-                    NavigationLink(destination: PurchaseListView(trip: currentTrip)) {
+                if !trip.purchaseRecords.isEmpty {
+                    NavigationLink(destination: PurchaseListView(trip: trip)) {
                         HStack(spacing: 4) {
                             Text("すべて見る")
                                 .font(.subheadline)
@@ -251,20 +269,22 @@ struct TripDetailView: View {
             }
             .padding(.horizontal)
 
-            if currentTrip.purchaseRecords.isEmpty {
-                emptyStateView(
+            if trip.purchaseRecords.isEmpty {
+                EmptyStateView(
                     icon: "cart.circle",
                     title: "買い物記録がありません",
-                    description: "最初の買い物を記録しましょう"
+                    description: "最初の買い物を記録しましょう",
+                    actionTitle: "買い物を追加",
+                    action: { showingAddPurchaseSheet = true }
                 )
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(currentTrip.recentPurchaseRecords) { purchase in
-                            PurchaseCard(
+                    LazyHStack(spacing: 12) {
+                        ForEach(trip.recentPurchaseRecords) { purchase in
+                            ResponsivePurchaseCard(
                                 purchase: purchase,
-                                currency: currentTrip.currency,
-                                weightedAverageRate: currentTrip.weightedAverageRate
+                                currency: trip.currency,
+                                weightedAverageRate: trip.weightedAverageRate
                             )
                         }
                     }
@@ -275,23 +295,21 @@ struct TripDetailView: View {
     }
 
     // MARK: - アクションボタンセクション
-    private var actionButtonsSection: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                actionButton(
-                    title: "両替を追加",
-                    icon: "plus.circle.fill",
-                    color: .blue,
-                    action: { showingAddExchangeSheet = true }
-                )
+    private func actionButtonsSection(trip: Trip) -> some View {
+        HStack(spacing: 12) {
+            ResponsiveActionButton(
+                title: "両替を追加",
+                icon: "plus.circle.fill",
+                color: .blue,
+                action: { showingAddExchangeSheet = true }
+            )
 
-                actionButton(
-                    title: "買い物を追加",
-                    icon: "cart.badge.plus",
-                    color: .green,
-                    action: { showingAddPurchaseSheet = true }
-                )
-            }
+            ResponsiveActionButton(
+                title: "買い物を追加",
+                icon: "cart.badge.plus",
+                color: .green,
+                action: { showingAddPurchaseSheet = true }
+            )
         }
         .padding(.horizontal)
     }
@@ -299,105 +317,29 @@ struct TripDetailView: View {
     // MARK: - ヘルパービュー
 
     // 旅行状態バッジ
-    private var tripStatusBadge: some View {
-        let isActive = isTripActive(currentTrip)
-        let isUpcoming = isTripUpcoming(currentTrip)
-        let isPast = isTripPast(currentTrip)
+    private func tripStatusBadge(trip: Trip) -> some View {
+        let isActive = isTripActive(trip)
+        let isUpcoming = isTripUpcoming(trip)
+        let isPast = isTripPast(trip)
 
         return Group {
             if isActive {
-                statusBadge(text: "現在旅行中", color: .green)
+                StatusBadge(text: "現在旅行中", color: .green)
             } else if isUpcoming {
-                statusBadge(text: "予定", color: .blue)
+                StatusBadge(text: "予定", color: .blue)
             } else if isPast {
-                statusBadge(text: "終了", color: .gray)
+                StatusBadge(text: "終了", color: .gray)
             }
         }
-    }
-
-    // ステータスバッジ
-    private func statusBadge(text: String, color: Color) -> some View {
-        Text(text)
-            .font(.caption)
-            .fontWeight(.semibold)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(color.opacity(0.2))
-            .foregroundColor(color)
-            .cornerRadius(8)
-    }
-
-    // 空状態ビュー
-    private func emptyStateView(icon: String, title: String, description: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 40))
-                .foregroundColor(.gray.opacity(0.6))
-
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-
-            Text(description)
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.secondarySystemBackground))
-        )
-        .padding(.horizontal)
-    }
-
-    // アクションボタン
-    private func actionButton(
-        title: String,
-        icon: String,
-        color: Color,
-        disabled: Bool = false,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                Text(title)
-                    .fontWeight(.medium)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .foregroundColor(.white)
-            .background(disabled ? Color.gray : color)
-            .cornerRadius(12)
-        }
-        .disabled(disabled)
     }
 
     // MARK: - 計算プロパティ
 
-    private var totalExchangeAmount: Double {
-        currentTrip.exchangeRecords.reduce(0) { $0 + $1.jpyAmount }
-    }
-
-    private var totalForeignObtained: Double {
-        currentTrip.exchangeRecords.reduce(0) { $0 + $1.foreignAmount }
-    }
-
-    private var totalForeignSpent: Double {
-        currentTrip.purchaseRecords.reduce(0) { $0 + $1.foreignAmount }
-    }
-
-    private var remainingForeign: Double {
-        totalForeignObtained - totalForeignSpent
-    }
-
-    private var remainingForeignText: String {
-        if totalForeignObtained <= 0 {
+    private func remainingForeignText(trip: Trip) -> String {
+        if trip.totalForeignObtained <= 0 {
             return "データなし"
         }
-        return CurrencyFormatter.formatForeign(remainingForeign, currencyCode: currentTrip.currency.code)
+        return CurrencyFormatter.formatForeign(trip.remainingForeign, currencyCode: trip.currency.code)
     }
 
     // MARK: - ヘルパーメソッド
@@ -422,12 +364,141 @@ struct TripDetailView: View {
         return Date() > trip.endDate
     }
 
-    private func sharePDF() {
+    private func sharePDF(trip: Trip) {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootVC = windowScene.windows.first?.rootViewController else {
             return
         }
-        viewModel.sharePDF(for: currentTrip, from: rootVC)
+        viewModel.sharePDF(for: trip, from: rootVC)
+    }
+}
+
+// MARK: - 再利用可能なUI コンポーネント
+
+/// レスポンシブなカードコンテナ
+struct ResponsiveCard<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(UIColor.systemBackground))
+                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+            )
+            .padding(.horizontal)
+    }
+}
+
+/// 統一されたステータスバッジ
+struct StatusBadge: View {
+    let text: String
+    let color: Color
+
+    var body: some View {
+        Text(text)
+            .font(.caption)
+            .fontWeight(.semibold)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(color.opacity(0.2))
+            .foregroundColor(color)
+            .cornerRadius(8)
+    }
+}
+
+/// 統一された空状態ビュー
+struct EmptyStateView: View {
+    let icon: String
+    let title: String
+    let description: String
+    let actionTitle: String?
+    let action: (() -> Void)?
+
+    init(icon: String, title: String, description: String, actionTitle: String? = nil, action: (() -> Void)? = nil) {
+        self.icon = icon
+        self.title = title
+        self.description = description
+        self.actionTitle = actionTitle
+        self.action = action
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 40))
+                .foregroundColor(.gray.opacity(0.6))
+
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+
+            Text(description)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+
+            if let actionTitle = actionTitle, let action = action {
+                Button(action: action) {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                        Text(actionTitle)
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                }
+                .padding(.top, 8)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(UIColor.secondarySystemBackground))
+        )
+        .padding(.horizontal)
+    }
+}
+
+/// レスポンシブなアクションボタン
+struct ResponsiveActionButton: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let disabled: Bool
+    let action: () -> Void
+
+    init(title: String, icon: String, color: Color, disabled: Bool = false, action: @escaping () -> Void) {
+        self.title = title
+        self.icon = icon
+        self.color = color
+        self.disabled = disabled
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                Text(title)
+                    .fontWeight(.medium)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .foregroundColor(.white)
+            .background(disabled ? Color.gray : color)
+            .cornerRadius(12)
+        }
+        .disabled(disabled)
     }
 }
 

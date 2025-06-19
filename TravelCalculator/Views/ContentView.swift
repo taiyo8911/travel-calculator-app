@@ -13,21 +13,8 @@ struct ContentView: View {
     var body: some View {
         NavigationStack(path: $viewModel.navigationPath) {
             TripListView()
-                .navigationDestination(for: UUID.self) { tripId in
-                    if let trip = viewModel.trips.first(where: { $0.id == tripId }) {
-                        TripDetailView(trip: trip)
-                    }
-                }
-                .navigationDestination(for: Trip.self) { trip in
-                    TripDetailView(trip: trip)
-                }
-                // 両替履歴画面への遷移
-                .navigationDestination(for: ExchangeListDestination.self) { destination in
-                    ExchangeListView(trip: destination.trip)
-                }
-                // 買い物履歴画面への遷移
-                .navigationDestination(for: PurchaseListDestination.self) { destination in
-                    PurchaseListView(trip: destination.trip)
+                .navigationDestination(for: NavigationDestination.self) { destination in
+                    destinationView(for: destination)
                 }
                 .toolbar {
                     ToolbarItemGroup(placement: .bottomBar) {
@@ -77,34 +64,113 @@ struct ContentView: View {
         // 旅行データがない場合は、ガイドを表示
         .overlay {
             if viewModel.trips.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "airplane")
-                        .font(.system(size: 60))
-                        .foregroundColor(.gray)
-
-                    Text("旅行がありません")
-                        .font(.headline)
-
-                    Text("「追加」ボタンをタップして最初の旅行を記録しましょう")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                .padding()
+                EmptyStateView(
+                    icon: "airplane",
+                    title: "旅行がありません",
+                    description: "「追加」ボタンをタップして最初の旅行を記録しましょう",
+                    actionTitle: "旅行を追加",
+                    action: { viewModel.showingAddTripSheet = true }
+                )
             }
         }
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
+
+    // MARK: - Navigation Destination Handling
+
+    @ViewBuilder
+    private func destinationView(for destination: NavigationDestination) -> some View {
+        switch destination {
+        case .tripDetail(let tripId):
+            if let trip = viewModel.trips.first(where: { $0.id == tripId }) {
+                TripDetailView(trip: trip)
+            } else {
+                tripNotFoundView
+            }
+
+        case .exchangeList(let tripId):
+            if let trip = viewModel.trips.first(where: { $0.id == tripId }) {
+                ExchangeListView(trip: trip)
+            } else {
+                tripNotFoundView
+            }
+
+        case .purchaseList(let tripId):
+            if let trip = viewModel.trips.first(where: { $0.id == tripId }) {
+                PurchaseListView(trip: trip)
+            } else {
+                tripNotFoundView
+            }
+        }
+    }
+
+    private var tripNotFoundView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 50))
+                .foregroundColor(.orange)
+
+            Text("旅行が見つかりません")
+                .font(.headline)
+
+            Text("旅行が削除されたか、データに問題がある可能性があります")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            Button("旅行一覧に戻る") {
+                viewModel.navigationPath = NavigationPath()
+            }
+            .padding()
+            .background(Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(10)
+        }
+        .padding()
+        .navigationTitle("エラー")
+    }
 }
 
-// ナビゲーション用の構造体
-struct ExchangeListDestination: Hashable {
-    let trip: Trip
+// MARK: - Navigation Destination Types
+
+/// 統一されたナビゲーション先の定義
+enum NavigationDestination: Hashable {
+    case tripDetail(tripId: UUID)
+    case exchangeList(tripId: UUID)
+    case purchaseList(tripId: UUID)
 }
 
-struct PurchaseListDestination: Hashable {
-    let trip: Trip
+// MARK: - TravelCalculatorViewModel Extension
+
+extension TravelCalculatorViewModel {
+
+    /// 旅行詳細画面へのナビゲーション
+    func navigateToTripDetail(_ tripId: UUID) {
+        navigationPath.append(NavigationDestination.tripDetail(tripId: tripId))
+    }
+
+    /// 両替履歴画面へのナビゲーション
+    func navigateToExchangeList(_ tripId: UUID) {
+        navigationPath.append(NavigationDestination.exchangeList(tripId: tripId))
+    }
+
+    /// 買い物履歴画面へのナビゲーション
+    func navigateToPurchaseList(_ tripId: UUID) {
+        navigationPath.append(NavigationDestination.purchaseList(tripId: tripId))
+    }
+
+    /// ナビゲーションをクリア
+    func clearNavigation() {
+        navigationPath = NavigationPath()
+    }
+
+    /// 一つ前の画面に戻る
+    func navigateBack() {
+        if !navigationPath.isEmpty {
+            navigationPath.removeLast()
+        }
+    }
 }
 
 #Preview{
