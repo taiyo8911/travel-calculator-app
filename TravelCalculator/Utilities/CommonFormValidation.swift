@@ -9,9 +9,9 @@ import Foundation
 
 /// 共通フォームバリデーション機能
 struct CommonFormValidation {
-    
+
     // MARK: - Exchange Form Validation
-    
+
     /// 両替フォームのバリデーション状態
     struct ExchangeFormState {
         let jpyAmount: String
@@ -20,17 +20,17 @@ struct CommonFormValidation {
         let rateValue1: String
         let rateValue2: String
         let currencyCode: String
-        
+
         /// フォームが有効かどうか
         var isValid: Bool {
             return CommonFormValidation.validateExchangeForm(self).isValid
         }
-        
+
         /// エラーメッセージ
         var errorMessage: String? {
             return CommonFormValidation.validateExchangeForm(self).errorMessage
         }
-        
+
         /// 計算されたレート
         var calculatedRate: Double {
             guard isValid else { return 0 }
@@ -43,7 +43,7 @@ struct CommonFormValidation {
             )
         }
     }
-    
+
     /// 両替フォームのバリデーション
     static func validateExchangeForm(_ state: ExchangeFormState) -> ValidationResult {
         return RateCalculationUtility.validateInput(
@@ -55,7 +55,7 @@ struct CommonFormValidation {
             currencyCode: state.currencyCode
         )
     }
-    
+
     /// 両替フォームのクイックバリデーション（リアルタイム用）
     static func validateExchangeFormQuick(_ state: ExchangeFormState) -> Bool {
         return RateCalculationUtility.validateQuick(
@@ -66,26 +66,26 @@ struct CommonFormValidation {
             foreignAmount: state.foreignAmount
         )
     }
-    
+
     // MARK: - Purchase Form Validation
-    
+
     /// 買い物フォームのバリデーション状態
     struct PurchaseFormState {
         let foreignAmount: String
         let description: String
         let currencyCode: String
-        
+
         /// フォームが有効かどうか
         var isValid: Bool {
             return CommonFormValidation.validatePurchaseForm(self).isValid
         }
-        
+
         /// エラーメッセージ
         var errorMessage: String? {
             return CommonFormValidation.validatePurchaseForm(self).errorMessage
         }
     }
-    
+
     /// 買い物フォームのバリデーション
     static func validatePurchaseForm(_ state: PurchaseFormState) -> ValidationResult {
         // 金額のバリデーション
@@ -93,44 +93,44 @@ struct CommonFormValidation {
         if trimmedAmount.isEmpty {
             return .invalid("金額を入力してください")
         }
-        
+
         guard let amount = Double(trimmedAmount) else {
             return .invalid("正しい金額を入力してください")
         }
-        
+
         if amount <= 0 {
             return .invalid("金額は0より大きい値を入力してください")
         }
-        
+
         let currencyLimits = CurrencyLimits.getLimits(for: state.currencyCode)
         if amount < currencyLimits.minAmount || amount > currencyLimits.maxAmount {
             return .invalid(ValidationConstants.ErrorMessages.invalidAmountForCurrency(state.currencyCode))
         }
-        
-        // 説明のバリデーション
+
+        // 説明のバリデーション（必須入力）
         return ValidationConstants.validatePurchaseDescription(state.description)
     }
-    
+
     // MARK: - Trip Form Validation
-    
+
     /// 旅行フォームのバリデーション状態
     struct TripFormState {
         let name: String
         let country: String
         let startDate: Date
         let endDate: Date
-        
+
         /// フォームが有効かどうか
         var isValid: Bool {
             return CommonFormValidation.validateTripForm(self).isValid
         }
-        
+
         /// エラーメッセージ
         var errorMessage: String? {
             return CommonFormValidation.validateTripForm(self).errorMessage
         }
     }
-    
+
     /// 旅行フォームのバリデーション
     static func validateTripForm(_ state: TripFormState) -> ValidationResult {
         // 旅行名のバリデーション
@@ -138,39 +138,39 @@ struct CommonFormValidation {
         if !nameValidation.isValid {
             return nameValidation
         }
-        
+
         // 国名のバリデーション
         let countryValidation = ValidationConstants.validateCountryName(state.country)
         if !countryValidation.isValid {
             return countryValidation
         }
-        
+
         // 日付範囲のバリデーション
         return ValidationConstants.validateDateRange(startDate: state.startDate, endDate: state.endDate)
     }
-    
+
     // MARK: - Helper Methods
-    
+
     /// レート入力方式に応じたプレースホルダーを取得
     static func getPlaceholderTexts(for inputType: RateInputType, currencyCode: String) -> (value1: String, value2: String?) {
         return RateCalculationUtility.getPlaceholderText(for: inputType, currencyCode: currencyCode)
     }
-    
+
     /// レート入力方式に応じた説明文を取得
     static func getInputDescription(for inputType: RateInputType, currencyCode: String) -> String {
         return RateCalculationUtility.getInputDescription(for: inputType, currencyCode: currencyCode)
     }
-    
+
     /// 通貨フォーマットのヘルパー
     static func formatAmountForDisplay(_ amount: Double, currencyCode: String) -> String {
         return CurrencyFormatter.formatForeign(amount, currencyCode: currencyCode)
     }
-    
+
     /// JPY金額フォーマット
     static func formatJPYForDisplay(_ amount: Double) -> String {
         return CurrencyFormatter.formatJPY(amount)
     }
-    
+
     /// レートフォーマット
     static func formatRateForDisplay(_ rate: Double) -> String {
         return CurrencyFormatter.formatRate(rate)
@@ -180,7 +180,7 @@ struct CommonFormValidation {
 // MARK: - Validation Extensions
 
 extension CommonFormValidation.ExchangeFormState {
-    
+
     /// 計算プレビュー用の情報を取得
     func getCalculationPreview() -> ExchangeCalculationPreview? {
         guard isValid,
@@ -188,11 +188,11 @@ extension CommonFormValidation.ExchangeFormState {
               let foreignValue = Double(foreignAmount) else {
             return nil
         }
-        
+
         let displayRate = calculatedRate
         let actualRate = jpyValue / foreignValue
         let feePercentage = ((actualRate - displayRate) / displayRate) * 100
-        
+
         return ExchangeCalculationPreview(
             displayRate: displayRate,
             actualRate: actualRate,
@@ -209,7 +209,7 @@ extension CommonFormValidation.ExchangeFormState {
 }
 
 extension CommonFormValidation.PurchaseFormState {
-    
+
     /// JPY換算プレビューを取得
     func getJPYConversionPreview(using rate: Double) -> PurchaseConversionPreview? {
         guard isValid,
@@ -217,9 +217,9 @@ extension CommonFormValidation.PurchaseFormState {
               rate > 0 else {
             return nil
         }
-        
+
         let jpyAmount = amount * rate
-        
+
         return PurchaseConversionPreview(
             foreignAmount: amount,
             jpyAmount: jpyAmount,

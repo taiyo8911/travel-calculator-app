@@ -68,14 +68,34 @@ struct AddPurchaseView: View {
         Section(header: Text("買い物情報")) {
             DatePicker("日付", selection: $date, displayedComponents: .date)
 
-            TextField("商品・サービス内容", text: $description)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("買い物内容")
+                    Text("*")
+                        .foregroundColor(.red)
+                        .font(.caption)
+                }
+
+                TextField("買い物内容を入力してください", text: $description)
+            }
 
             HStack {
-                TextField("金額", text: $foreignAmount)
-                    .keyboardType(.decimalPad)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("金額")
+                        Text("*")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
 
-                Text(trip.currency.code)
-                    .foregroundColor(.secondary)
+                    HStack {
+                        TextField("金額を入力してください", text: $foreignAmount)
+                            .keyboardType(.decimalPad)
+
+                        Text(trip.currency.code)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
         }
     }
@@ -184,7 +204,7 @@ struct AddPurchaseView: View {
         let newPurchase = PurchaseRecord(
             date: date,
             foreignAmount: amount,
-            description: description
+            description: description.trimmingCharacters(in: .whitespacesAndNewlines)
         )
 
         viewModel.addPurchaseRecord(newPurchase, toTripWithId: trip.id)

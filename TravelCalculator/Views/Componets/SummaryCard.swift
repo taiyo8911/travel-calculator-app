@@ -126,90 +126,6 @@ struct SummaryCard: View {
     }
 }
 
-// MARK: - 特殊用途のサマリーカード
-
-/// 警告付きサマリーカード
-struct WarningSummaryCard: View {
-    var title: String
-    var value: String
-    var icon: String
-    var color: Color
-    var warningMessage: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SummaryCard(title: title, value: value, icon: icon, color: color)
-
-            UnifiedWarningView(message: warningMessage, color: .orange)
-                .padding(.horizontal, 12)
-                .padding(.bottom, 8)
-        }
-    }
-}
-
-/// インタラクティブサマリーカード
-struct InteractiveSummaryCard: View {
-    var title: String
-    var value: String
-    var icon: String
-    var color: Color
-    var action: (() -> Void)?
-
-    @State private var isPressed = false
-
-    var body: some View {
-        Button(action: action ?? {}) {
-            SummaryCard(title: title, value: value, icon: icon, color: color)
-        }
-        .buttonStyle(InteractiveCardButtonStyle())
-        .disabled(action == nil)
-    }
-}
-
-/// インタラクティブカード用のボタンスタイル
-struct InteractiveCardButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .opacity(configuration.isPressed ? 0.8 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
-/// 進行状況付きサマリーカード
-struct ProgressSummaryCard: View {
-    var title: String
-    var value: String
-    var icon: String
-    var color: Color
-    var progress: Double // 0.0 - 1.0
-    var progressLabel: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SummaryCard(title: title, value: value, icon: icon, color: color)
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(progressLabel)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text("\(Int(progress * 100))%")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-
-                ProgressView(value: progress)
-                    .progressViewStyle(LinearProgressViewStyle(tint: color))
-                    .scaleEffect(y: 0.8)
-            }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 8)
-        }
-    }
-}
-
 #Preview("Standard Cards") {
     LazyVGrid(columns: [
         GridItem(.flexible()),
@@ -241,36 +157,6 @@ struct ProgressSummaryCard: View {
             value: "7日間",
             icon: "calendar.circle.fill",
             color: .purple
-        )
-    }
-    .padding()
-}
-
-#Preview("Special Cards") {
-    VStack(spacing: 16) {
-        WarningSummaryCard(
-            title: "合計支出額",
-            value: "計算不可",
-            icon: "cart.circle.fill",
-            color: .orange,
-            warningMessage: "両替記録が無いため計算できません"
-        )
-
-        InteractiveSummaryCard(
-            title: "両替を追加",
-            value: "タップして追加",
-            icon: "plus.circle.fill",
-            color: .blue,
-            action: { print("Add exchange tapped") }
-        )
-
-        ProgressSummaryCard(
-            title: "予算使用状況",
-            value: "¥35,000 / ¥50,000",
-            icon: "chart.bar.fill",
-            color: .green,
-            progress: 0.7,
-            progressLabel: "予算進捗"
         )
     }
     .padding()

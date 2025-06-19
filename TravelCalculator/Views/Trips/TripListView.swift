@@ -32,7 +32,7 @@ struct TripListView: View {
                     // 常に最新のtrip情報を取得
                     let currentTrip = viewModel.trips.first(where: { $0.id == trip.id }) ?? trip
 
-                    NavigationLink(value: currentTrip) {
+                    NavigationLink(value: NavigationDestination.tripDetail(tripId: currentTrip.id)) {
                         TripRow(trip: currentTrip)
                     }
                     .contextMenu {
@@ -54,9 +54,6 @@ struct TripListView: View {
                 }
             }
             .id(refreshKey) // refreshKeyを使ってリストを強制更新
-            .navigationDestination(for: Trip.self) { trip in
-                TripDetailView(trip: trip)
-            }
             .listStyle(InsetGroupedListStyle())
         }
         .navigationBarHidden(true) // デフォルトのナビゲーションバーを非表示

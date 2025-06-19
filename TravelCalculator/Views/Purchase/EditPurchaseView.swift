@@ -19,6 +19,11 @@ struct EditPurchaseView: View {
     @State private var description: String
     @State private var showValidationError: Bool = false
 
+    // 既存データが空文字の場合の警告フラグ
+    private var hasEmptyDescription: Bool {
+        purchase.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     // フォーム状態を計算プロパティとして定義
     private var formState: CommonFormValidation.PurchaseFormState {
         CommonFormValidation.PurchaseFormState(
@@ -52,6 +57,11 @@ struct EditPurchaseView: View {
     var body: some View {
         NavigationView {
             Form {
+                // 既存データが空の場合の警告
+                if hasEmptyDescription {
+                    existingDataWarningSection
+                }
+
                 basicInfoSection
                 conversionPreviewSection
 
@@ -77,19 +87,58 @@ struct EditPurchaseView: View {
 
     // MARK: - Sections
 
+    private var existingDataWarningSection: some View {
+        Section {
+            HStack {
+                Image(systemName: "info.circle.fill")
+                    .foregroundColor(.blue)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("既存データについて")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.blue)
+                    Text("この買い物記録は説明が空のまま保存されています。編集して保存するには、買い物内容の入力が必要です。")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.vertical, 4)
+        }
+    }
+
     private var basicInfoSection: some View {
         Section(header: Text("買い物情報")) {
             DatePicker("日付", selection: $date, displayedComponents: .date)
 
-            HStack {
-                Text("\(trip.currency.code)金額")
-                Spacer()
-                TextField("外貨金額", text: $foreignAmount)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("買い物内容")
+                    Text("*")
+                        .foregroundColor(.red)
+                        .font(.caption)
+                }
+
+                TextField("買い物内容を入力してください", text: $description)
             }
 
-            TextField("買い物メモ", text: $description)
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("金額")
+                        Text("*")
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
+
+                    HStack {
+                        TextField("金額を入力してください", text: $foreignAmount)
+                            .keyboardType(.decimalPad)
+
+                        Text(trip.currency.code)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
         }
     }
 
@@ -199,7 +248,7 @@ struct EditPurchaseView: View {
             id: purchase.id,
             date: date,
             foreignAmount: foreignValue,
-            description: description
+            description: description.trimmingCharacters(in: .whitespacesAndNewlines)
         )
 
         // ViewModelの更新メソッドを呼び出す
@@ -210,22 +259,32 @@ struct EditPurchaseView: View {
     }
 }
 
-#Preview {
+#Preview("空の説明（既存データ）") {
     let viewModel = TravelCalculatorViewModel()
-
-    // サンプルのCurrency
     let currency = Currency(code: "USD", name: "US Dollar")
-
-    // サンプルのTrip
     let trip = Trip(name: "アメリカ旅行", country: "アメリカ", currency: currency)
 
-    // サンプルの買い物記録
-    let purchase = PurchaseRecord(
+    let emptyDescriptionPurchase = PurchaseRecord(
+        date: Date(),
+        foreignAmount: 50.0,
+        description: ""
+    )
+
+    EditPurchaseView(trip: trip, purchase: emptyDescriptionPurchase)
+        .environmentObject(viewModel)
+}
+
+#Preview("通常の編集") {
+    let viewModel = TravelCalculatorViewModel()
+    let currency = Currency(code: "USD", name: "US Dollar")
+    let trip = Trip(name: "アメリカ旅行", country: "アメリカ", currency: currency)
+
+    let normalPurchase = PurchaseRecord(
         date: Date(),
         foreignAmount: 50.0,
         description: "お土産"
     )
 
-    EditPurchaseView(trip: trip, purchase: purchase)
+    EditPurchaseView(trip: trip, purchase: normalPurchase)
         .environmentObject(viewModel)
 }
