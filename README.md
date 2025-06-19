@@ -167,56 +167,65 @@ MVVMアーキテクチャに基づいて設計され、SwiftUIを使用して構
 
 ```
 TravelCalculator/
-├── TravelCalculatorApp.swift          // アプリのエントリーポイント
+├── 🎯 TravelCalculatorApp.swift                    # アプリエントリーポイント
 │
-├── Models/
-│   ├── Trip.swift                     // 旅行モデル
-│   ├── Currency.swift                 // 通貨モデル
-│   ├── ExchangeRecord.swift           // 両替記録モデル（4つの入力方式対応）
-│   └── PurchaseRecord.swift           // 買い物記録モデル
+├── 📊 Models/                                      # データモデル層
+│   ├── Trip.swift                                 # 旅行モデル（メイン）
+│   ├── Currency.swift                             # 通貨モデル（18種類対応）
+│   ├── ExchangeRecord.swift                       # 両替記録（4つの入力方式）
+│   └── PurchaseRecord.swift                       # 買い物記録
 │
-├── ViewModels/
-│   └── TravelCalculatorViewModel.swift // メインビューモデル
+├── 🧮 ViewModels/                                  # ビジネスロジック層
+│   └── TravelCalculatorViewModel.swift            # メインViewModel（MVVM）
 │
-├── Views/
-│   ├── ContentView.swift              // メインコンテンツビュー
+├── 🖼️ Views/                                       # UI層
+│   ├── ContentView.swift                          # ルートビュー・ナビゲーション管理
 │   │
-│   ├── Trips/
-│   │   ├── TripListView.swift         // 旅行一覧画面（カスタムヘッダー付き）
-│   │   ├── AddTripView.swift          // 旅行追加画面
-│   │   ├── EditTripView.swift         // 旅行編集画面
-│   │   └── TripDetailView.swift       // 旅行詳細画面
+│   ├── 🧳 Trips/                                   # 旅行管理機能
+│   │   ├── TripListView.swift                     # 旅行一覧（カスタムヘッダー）
+│   │   ├── AddTripView.swift                      # 旅行追加画面
+│   │   ├── EditTripView.swift                     # 旅行編集画面
+│   │   └── TripDetailView.swift                   # 旅行詳細画面
 │   │
-│   ├── Exchange/
-│   │   ├── ExchangeListView.swift     // 両替履歴画面（統計表示付き）
-│   │   ├── AddExchangeView.swift      // 両替追加画面（多方式入力対応）
-│   │   └── EditExchangeView.swift     // 両替編集画面（移行機能付き）
+│   ├── 💱 Exchange/                                # 両替機能
+│   │   ├── ExchangeListView.swift                 # 両替履歴（統計表示）
+│   │   ├── AddExchangeView.swift                  # 両替追加（多方式入力）
+│   │   └── EditExchangeView.swift                 # 両替編集（移行機能）
 │   │
-│   ├── Purchase/
-│   │   ├── PurchaseListView.swift     // 買い物履歴画面
-│   │   ├── AddPurchaseView.swift      // 買い物追加画面
-│   │   └── EditPurchaseView.swift     // 買い物編集画面
+│   ├── 🛒 Purchase/                                # 買い物機能
+│   │   ├── PurchaseListView.swift                 # 買い物履歴
+│   │   ├── AddPurchaseView.swift                  # 買い物追加
+│   │   └── EditPurchaseView.swift                 # 買い物編集
 │   │
-│   ├── Componets/
-│   │   ├── SummaryCard.swift          // 集計カードコンポーネント
-│   │   ├── ExchangeCard.swift         // 両替カードコンポーネント（入力方式表示）
-│   │   └── PurchaseCard.swift         // 買い物カードコンポーネント
+│   ├── 🧩 Components/                              # 再利用コンポーネント
+│   │   ├── SummaryCard.swift                      # 集計カード
+│   │   └── RecordCards.swift                      # 両替・買い物カード
 │   │
-│   └── Settings/
-│       └── SettingsView.swift         // 設定画面
+│   └── ⚙️ Settings/                                # 設定機能
+│       └── SettingsView.swift                     # 設定画面（データリセット）
 │
-├── Utilities/
-│   ├── CurrencyFormatter.swift        // 通貨フォーマッタ
-│   ├── FlagEmoji.swift                // 国旗絵文字ユーティリティ
-│   ├── PDFGenerator.swift             // PDF生成ユーティリティ
-│   ├── RateCalculationUtility.swift   // レート計算・バリデーションユーティリティ
-│   └── ValidationConstants.swift      // バリデーション定数・制限値
+├── 🛠️ Utilities/                                   # ユーティリティ層
+│   ├── CurrencyFormatter.swift                    # 通貨フォーマッタ
+│   ├── FlagEmoji.swift                           # 国旗絵文字生成
+│   ├── PDFGenerator.swift                        # PDF出力機能
+│   ├── RateCalculationUtility.swift              # レート計算・バリデーション
+│   ├── ValidationConstants.swift                 # バリデーション定数・制限値
+│   └── CommonFormValidation.swift                # 共通フォームバリデーション
 │
-├── Assets.xcassets/                   // アプリアイコン・カラーセット
-├── Preview Content/
-│   └── Preview Assets.xcassets/       // プレビュー用アセット
-├── Info.plist                         // アプリ設定
-└── TravelCalculator.entitlements      // アプリ権限設定
+├── 🎨 Assets.xcassets/                            # アセット
+│   ├── Contents.json                             # アセット設定
+│   ├── AccentColor.colorset/                     # アクセントカラー
+│   │   └── Contents.json
+│   └── AppIcon.appiconset/                       # アプリアイコン
+│       └── Contents.json
+│
+├── 🔍 Preview Content/                            # プレビュー用
+│   └── Preview Assets.xcassets/
+│       └── Contents.json
+│
+├── ⚙️ Info.plist                                  # アプリ設定
+├── 🔐 TravelCalculator.entitlements              # アプリ権限
+└── 📝 README.md                                  # 技術仕様書
 ```
 
 ## バリデーション・制限値
