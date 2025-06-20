@@ -331,8 +331,6 @@ struct EnhancedExchangeRow: View {
 
     private var actualRateSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Divider()
-
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("実質レート")
@@ -342,7 +340,6 @@ struct EnhancedExchangeRow: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
-
                 Spacer()
             }
         }
