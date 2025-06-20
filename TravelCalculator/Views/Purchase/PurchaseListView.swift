@@ -134,10 +134,6 @@ struct PurchaseListView: View {
                     }
                 }
                 .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(UIColor.secondarySystemBackground))
-                )
                 .padding(.horizontal)
 
                 List {

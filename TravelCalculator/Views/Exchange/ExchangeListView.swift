@@ -137,10 +137,6 @@ struct ExchangeListView: View {
             }
         }
         .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.secondarySystemBackground))
-        )
         .padding(.horizontal)
     }
 
@@ -173,7 +169,6 @@ struct ExchangeListView: View {
                             .foregroundColor(.secondary)
                     }
                 }
-
                 Spacer()
             }
         }
