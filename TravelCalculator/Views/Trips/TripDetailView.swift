@@ -11,18 +11,34 @@ import Combine
 struct TripDetailView: View {
     @EnvironmentObject private var viewModel: TravelCalculatorViewModel
     private let tripId: UUID
+    private let previewTrip: Trip? // Preview用のTrip
 
     // シート表示状態
     @State private var showingAddExchangeSheet = false
     @State private var showingAddPurchaseSheet = false
 
-    // 最新のTrip情報を取得（計算プロパティとして簡略化）
+    // 最新のTrip情報を取得（Preview対応版）
     private var currentTrip: Trip? {
-        viewModel.trips.first(where: { $0.id == tripId })
+        // Preview環境の検出
+        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1",
+           let previewTrip = previewTrip {
+            return previewTrip
+        }
+
+        // 通常の動作
+        return viewModel.trips.first(where: { $0.id == tripId })
     }
 
+    // 通常のイニシャライザ（既存）
     init(trip: Trip) {
         self.tripId = trip.id
+        self.previewTrip = nil
+    }
+
+    // Preview専用のイニシャライザ
+    init(previewTrip trip: Trip) {
+        self.tripId = trip.id
+        self.previewTrip = trip
     }
 
     var body: some View {
@@ -107,6 +123,7 @@ struct TripDetailView: View {
                     Spacer()
 
                     tripStatusBadge(trip: trip)
+
                 }
 
                 // 通貨情報
@@ -519,7 +536,7 @@ struct ResponsiveActionButton: View {
 #Preview {
     NavigationView {
         TripDetailView(
-            trip: Trip(
+            previewTrip: Trip( // previewTripパラメータを使用
                 name: "タイ旅行",
                 country: "タイ",
                 currency: Currency(code: "THB", name: "タイバーツ"),
@@ -535,6 +552,6 @@ struct ResponsiveActionButton: View {
                 ]
             )
         )
-        .environmentObject(TravelCalculatorViewModel())
+        .environmentObject(TravelCalculatorViewModel()) // 空のViewModelでOK
     }
 }
