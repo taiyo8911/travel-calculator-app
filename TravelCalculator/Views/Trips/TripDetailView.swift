@@ -452,7 +452,7 @@ struct EmptyStateView: View {
                     }
                     .padding(.vertical, 8)
                     .padding(.horizontal, 16)
-                    .background(Color.blue)
+                    .background(buttonColor(for: actionTitle))
                     .foregroundColor(.white)
                     .cornerRadius(8)
                 }
@@ -466,6 +466,20 @@ struct EmptyStateView: View {
                 .fill(Color(UIColor.secondarySystemBackground))
         )
         .padding(.horizontal)
+    }
+
+    // MARK: - Helper Methods
+
+    private func buttonColor(for actionTitle: String?) -> Color {
+        guard let title = actionTitle else { return .blue }
+
+        if title.contains("両替を追加") {
+            return .blue
+        } else if title.contains("買い物を追加") {
+            return .green
+        } else {
+            return .blue // デフォルト
+        }
     }
 }
 
