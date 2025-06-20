@@ -11,7 +11,10 @@ struct ContentView: View {
     @EnvironmentObject var viewModel: TravelCalculatorViewModel
 
     var body: some View {
-        NavigationStack(path: $viewModel.navigationPath) {
+        NavigationStack(path: Binding(
+            get: { viewModel.navigationPath },
+            set: { viewModel.navigationPath = $0 }
+        )) {
             TripListView()
                 .navigationDestination(for: NavigationDestination.self) { destination in
                     destinationView(for: destination)
@@ -61,7 +64,6 @@ struct ContentView: View {
                     .navigationBarTitleDisplayMode(.inline)
             }
         }
-        // 旅行データがない場合は、ガイドを表示
         .overlay {
             if viewModel.trips.isEmpty {
                 EmptyStateView(
@@ -120,7 +122,7 @@ struct ContentView: View {
                 .padding(.horizontal)
 
             Button("旅行一覧に戻る") {
-                viewModel.navigationPath = NavigationPath()
+                viewModel.clearNavigation()
             }
             .padding()
             .background(Color.blue)
@@ -134,43 +136,10 @@ struct ContentView: View {
 
 // MARK: - Navigation Destination Types
 
-/// 統一されたナビゲーション先の定義
 enum NavigationDestination: Hashable {
     case tripDetail(tripId: UUID)
     case exchangeList(tripId: UUID)
     case purchaseList(tripId: UUID)
-}
-
-// MARK: - TravelCalculatorViewModel Extension
-
-extension TravelCalculatorViewModel {
-
-    /// 旅行詳細画面へのナビゲーション
-    func navigateToTripDetail(_ tripId: UUID) {
-        navigationPath.append(NavigationDestination.tripDetail(tripId: tripId))
-    }
-
-    /// 両替履歴画面へのナビゲーション
-    func navigateToExchangeList(_ tripId: UUID) {
-        navigationPath.append(NavigationDestination.exchangeList(tripId: tripId))
-    }
-
-    /// 買い物履歴画面へのナビゲーション
-    func navigateToPurchaseList(_ tripId: UUID) {
-        navigationPath.append(NavigationDestination.purchaseList(tripId: tripId))
-    }
-
-    /// ナビゲーションをクリア
-    func clearNavigation() {
-        navigationPath = NavigationPath()
-    }
-
-    /// 一つ前の画面に戻る
-    func navigateBack() {
-        if !navigationPath.isEmpty {
-            navigationPath.removeLast()
-        }
-    }
 }
 
 #Preview{
