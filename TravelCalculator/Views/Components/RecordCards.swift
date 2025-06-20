@@ -447,7 +447,6 @@ struct UnifiedWarningView: View {
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.top, 4)
     }
 }
 
