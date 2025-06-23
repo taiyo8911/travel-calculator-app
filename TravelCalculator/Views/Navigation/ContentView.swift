@@ -21,9 +21,7 @@ struct ContentView: View {
                 }
                 .toolbar {
                     ToolbarItemGroup(placement: .bottomBar) {
-                        Spacer()
-
-                        // 旅行追加ボタンのみ残す（設定ボタンはサイドメニューに移動）
+                        // 旅行追加ボタン
                         Button(action: {
                             viewModel.showingAddTripSheet = true
                         }) {

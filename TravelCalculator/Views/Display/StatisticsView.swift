@@ -2,7 +2,7 @@
 //  StatisticsView.swift
 //  TravelCalculator
 //
-//  Created by Taiyo KOSHIBA on 2025/06/23.
+//  Created by AI Assistant on 2025/06/23.
 //
 
 import SwiftUI

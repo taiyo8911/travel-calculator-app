@@ -148,8 +148,6 @@ struct TripListView: View {
                         )
                 }
 
-                Spacer()
-
                 // 右側のスペース（左右対称にするため）
                 Color.clear
                     .frame(width: 44, height: 44)
