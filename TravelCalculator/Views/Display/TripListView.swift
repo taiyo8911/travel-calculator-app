@@ -119,8 +119,6 @@ struct TripListView: View {
                 }
                 .accessibilityLabel("メニューを開く")
 
-                Spacer()
-
                 // アプリ名とアイコン（中央配置）
                 HStack(spacing: 8) {
                     // 飛行機アイコン

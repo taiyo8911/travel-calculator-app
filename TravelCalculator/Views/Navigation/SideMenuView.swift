@@ -13,6 +13,8 @@ struct SideMenuView: View {
     @Binding var showingStatistics: Bool
     @EnvironmentObject private var viewModel: TravelCalculatorViewModel
 
+    private let feedbackFormURL = "https://forms.gle/WiAJaAzPGh3G4vCY9"
+
     var body: some View {
         ZStack {
             // 背景オーバーレイ（タップで閉じる）
@@ -116,18 +118,15 @@ struct SideMenuView: View {
 
                 MenuItemButton(
                     icon: "envelope",
-                    title: "フィードバック送信",
+                    title: "お問い合わせ",
                     action: {
                         closeSideMenu()
-                        // TODO: フィードバック送信の実装
-                        print("フィードバック送信が選択されました")
+                        openFeedbackForm()
                     }
                 )
             }
         }
     }
-
-    // 削除：フッター関連
 
     // MARK: - ヘルパーメソッド
 
@@ -135,6 +134,16 @@ struct SideMenuView: View {
         withAnimation(.easeInOut(duration: 0.3)) {
             isPresented = false
         }
+    }
+
+    private func openFeedbackForm() {
+        guard let url = URL(string: feedbackFormURL) else {
+            print("無効なURL: \(feedbackFormURL)")
+            return
+        }
+
+        // Safariで開く
+        UIApplication.shared.open(url)
     }
 
     private func getSafeAreaTop() -> CGFloat {
