@@ -19,7 +19,6 @@ class TravelCalculatorViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var trips: [Trip] = []
     @Published var selectedTripId: UUID?
-    @Published var isSettingsViewPresented: Bool = false
     @Published var showingAddTripSheet = false
 
     var navigationPath: NavigationPath {
