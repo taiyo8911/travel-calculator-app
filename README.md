@@ -11,7 +11,7 @@
 * 旅行情報の編集機能（通貨以外の編集が可能）
 * 旅行記録のPDF出力・共有機能
 * モダンなカスタムヘッダーデザイン（グラデーション背景）
-* 旅行統計情報の表示（総旅行数、進行中の旅行、予定の旅行）
+* ハンバーガーメニュー搭載のサイドメニュー機能
 
 ### 両替記録
 * **4つの入力方式に対応**：
@@ -44,6 +44,12 @@
 * 入力方式別の使用状況分析
 * リアルタイム計算とプレビュー表示
 
+### 統計・データ管理機能
+* 旅行統計の表示（総旅行数、進行中、予定、終了）
+* モーダル形式の統計情報画面
+* すべてのデータ削除機能（統計画面内）
+* データの整合性チェックと修復機能
+
 ### PDF出力機能
 旅行記録をPDFで出力・共有できる機能を搭載。
 
@@ -67,6 +73,7 @@
 * ダークモード対応
 * アクセシビリティ対応（DynamicTypeSize制限付き）
 * 視覚的フィードバック（警告表示、ステータスバッジ、色分け）
+* ハンバーガーメニューによるサイドメニュー
 
 ### 操作性
 * コンテキストメニューによる編集・削除操作
@@ -74,20 +81,18 @@
 * リアルタイム計算とプレビュー表示
 * 入力値バリデーションと詳細エラーメッセージ
 * 空状態の適切な案内表示
+* サイドメニューからの統計情報・フィードバック機能アクセス
 
 ## データ管理
 
 ### 永続化
 * ローカルデータの永続化（UserDefaults使用）
 * JSONエンコード/デコードによるデータ保存
-* データバージョン管理（現在v1.1.0）
-* 自動データ移行機能
 
 ### データ整合性
 * 包括的な入力バリデーション
-* データ修復機能
 * 既存データとの後方互換性維持
-* 設定画面でのデータリセット機能
+* 統計画面でのデータリセット機能
 
 ## 対応通貨一覧（18種類）
 
@@ -152,7 +157,6 @@ MVVMアーキテクチャに基づいて設計され、SwiftUIを使用して構
 * **言語**: Swift 5.9+
 * **フレームワーク**: SwiftUI 4.0+
 * **アーキテクチャ**: MVVM（Model-View-ViewModel）
-* **最低動作環境**: iOS 16.6以上
 * **対応デバイス**: iPhone
 
 ### 主要な実装特徴
@@ -176,33 +180,36 @@ TravelCalculator/
 │   └── PurchaseRecord.swift                       # 買い物記録
 │
 ├── 🧮 ViewModels/                                  # ビジネスロジック層
-│   └── TravelCalculatorViewModel.swift            # メインViewModel（MVVM）
+│   ├── TravelCalculatorViewModel.swift            # メインViewModel（MVVM）
+│   ├── DataManager.swift                          # データ永続化管理
+│   ├── PDFManager.swift                           # PDF生成・共有管理
+│   └── NavigationManager.swift                    # ナビゲーション管理
 │
-├── 🖼️ Views/                                       # UI層
-│   ├── ContentView.swift                          # ルートビュー・ナビゲーション管理
+├── 🖼️ Views/                                       # UI層（責務別構成）
+│   ├── 🧭 Navigation/                              # ナビゲーション・メニュー関連
+│   │   ├── ContentView.swift                      # ルートビュー・ナビゲーション管理
+│   │   └── SideMenuView.swift                     # サイドメニュー（ハンバーガーメニュー）
 │   │
-│   ├── 🧳 Trips/                                   # 旅行管理機能
+│   ├── 📺 Display/                                 # 表示・閲覧機能
 │   │   ├── TripListView.swift                     # 旅行一覧（カスタムヘッダー）
+│   │   ├── TripDetailView.swift                   # 旅行詳細画面
+│   │   ├── ExchangeListView.swift                 # 両替履歴（統計表示）
+│   │   ├── PurchaseListView.swift                 # 買い物履歴
+│   │   └── StatisticsView.swift                   # 統計情報画面（データ削除機能付き）
+│   │
+│   ├── ✏️ Input/                                   # 入力・編集機能
 │   │   ├── AddTripView.swift                      # 旅行追加画面
 │   │   ├── EditTripView.swift                     # 旅行編集画面
-│   │   └── TripDetailView.swift                   # 旅行詳細画面
-│   │
-│   ├── 💱 Exchange/                                # 両替機能
-│   │   ├── ExchangeListView.swift                 # 両替履歴（統計表示）
 │   │   ├── AddExchangeView.swift                  # 両替追加（多方式入力）
-│   │   └── EditExchangeView.swift                 # 両替編集（移行機能）
-│   │
-│   ├── 🛒 Purchase/                                # 買い物機能
-│   │   ├── PurchaseListView.swift                 # 買い物履歴
+│   │   ├── EditExchangeView.swift                 # 両替編集（移行機能）
 │   │   ├── AddPurchaseView.swift                  # 買い物追加
 │   │   └── EditPurchaseView.swift                 # 買い物編集
 │   │
-│   ├── 🧩 Components/                              # 再利用コンポーネント
-│   │   ├── SummaryCard.swift                      # 集計カード
-│   │   └── RecordCards.swift                      # 両替・買い物カード
-│   │
-│   └── ⚙️ Settings/                                # 設定機能
-│       └── SettingsView.swift                     # 設定画面（データリセット）
+│   └── 🧩 Components/                              # 再利用可能コンポーネント
+│       ├── SummaryCard.swift                      # 集計カード
+│       ├── ExchangeCard.swift                     # 両替カード（レスポンシブ対応）
+│       ├── PurchaseCard.swift                     # 買い物カード（レスポンシブ対応）
+│       └── UnifiedComponents.swift                # 統一UIコンポーネント
 │
 ├── 🛠️ Utilities/                                   # ユーティリティ層
 │   ├── CurrencyFormatter.swift                    # 通貨フォーマッタ
@@ -227,6 +234,37 @@ TravelCalculator/
 ├── 🔐 TravelCalculator.entitlements              # アプリ権限
 └── 📝 README.md                                  # 技術仕様書
 ```
+
+## Views層の責務別設計
+
+### 🧭 Navigation/ フォルダ
+ナビゲーション・メニュー関連の機能を担当
+* **ContentView.swift**: アプリ全体のナビゲーション管理
+* **SideMenuView.swift**: ハンバーガーメニューとサイドメニュー機能
+
+### 📺 Display/ フォルダ  
+表示・閲覧機能を担当
+* **TripListView.swift**: 旅行一覧の表示
+* **TripDetailView.swift**: 旅行詳細の表示
+* **ExchangeListView.swift**: 両替履歴の表示
+* **PurchaseListView.swift**: 買い物履歴の表示
+* **StatisticsView.swift**: 統計情報の表示とデータ管理
+
+### ✏️ Input/ フォルダ
+入力・編集機能を担当
+* **AddTripView.swift**: 旅行の新規追加
+* **EditTripView.swift**: 旅行情報の編集
+* **AddExchangeView.swift**: 両替記録の新規追加
+* **EditExchangeView.swift**: 両替記録の編集
+* **AddPurchaseView.swift**: 買い物記録の新規追加
+* **EditPurchaseView.swift**: 買い物記録の編集
+
+### 🧩 Components/ フォルダ
+再利用可能なUIコンポーネントを担当
+* **SummaryCard.swift**: 統計情報表示用カード
+* **ExchangeCard.swift**: 両替記録表示用カード
+* **PurchaseCard.swift**: 買い物記録表示用カード
+* **UnifiedComponents.swift**: 共通UIコンポーネント
 
 ## バリデーション・制限値
 
@@ -261,7 +299,8 @@ TravelCalculator/
 2. **両替記録**: 旅行詳細画面で4つの入力方式から選択して両替情報を登録
 3. **買い物記録**: 外貨での支出を記録（自動円換算）
 4. **データ分析**: リアルタイムでレートや支出状況を確認
-5. **記録保存**: 旅行終了後はPDF出力で記録を保存・共有
+5. **統計確認**: サイドメニューから統計情報を確認
+6. **記録保存**: 旅行終了後はPDF出力で記録を保存・共有
 
 ## 技術的特徴
 
@@ -277,6 +316,7 @@ TravelCalculator/
 
 ### 保守性
 * MVVM設計による責任分離
+* 責務別フォルダ構成による明確な役割分担
 * 再利用可能なコンポーネント設計
 * 包括的なユーティリティクラス
 * 詳細なバリデーション機能
