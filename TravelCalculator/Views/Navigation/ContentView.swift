@@ -122,5 +122,3 @@ enum NavigationDestination: Hashable {
     ContentView()
         .environmentObject(TravelCalculatorViewModel())
 }
-
-// git test
